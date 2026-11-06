@@ -1,0 +1,55 @@
+name: savra
+services:
+  db:
+    image: postgres:17-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:-savra_real}
+      POSTGRES_USER: ${POSTGRES_USER:-savra}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?Ejecute scripts/init-env.ps1 o scripts/init_env.py}
+    volumes:
+      - postgres_real:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $$POSTGRES_USER -d $$POSTGRES_DB"]
+      interval: 5s
+      timeout: 3s
+      retries: 15
+    networks: [storage]
+  backend:
+    build: ./backend
+    restart: unless-stopped
+    environment:
+      DATABASE_URL: postgresql+psycopg://${POSTGRES_USER:-savra}:${POSTGRES_PASSWORD}@db:5432/${POSTGRES_DB:-savra_real}
+      CONSENT_SECRET: ${CONSENT_SECRET:?Ejecute el script de inicialización}
+      FINGERPRINT_SECRET: ${FINGERPRINT_SECRET:?Ejecute el script de inicialización}
+      PUBLIC_ORIGIN: ${PUBLIC_ORIGIN:-http://localhost:8080}
+      DATA_MODE: real
+    volumes:
+      - ./datos_originales:/data:ro
+    depends_on:
+      db: {condition: service_healthy}
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8000/api/health', timeout=3)"]
+      interval: 10s
+      timeout: 5s
+      start_period: 30s
+      retries: 10
+    networks: [web, storage]
+  frontend:
+    build: ./frontend
+    restart: unless-stopped
+    ports: ["127.0.0.1:8080:8080"]
+    depends_on:
+      backend: {condition: service_healthy}
+    healthcheck:
+      test: ["CMD-SHELL", "wget -q -O /dev/null http://127.0.0.1:8080/healthz"]
+      interval: 10s
+      timeout: 3s
+      retries: 5
+    networks: [web]
+volumes:
+  postgres_real:
+networks:
+  web:
+  storage:
+    internal: true

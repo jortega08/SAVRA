@@ -1,0 +1,76 @@
+name: SAVRA checks
+on: [push, pull_request]
+permissions:
+  contents: read
+jobs:
+  repository:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - run: python scripts/audit_repository.py
+  frontend:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: frontend
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+      - run: npm ci
+      - run: npm test
+      - run: npm run build
+  backend:
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:17-alpine
+        env:
+          POSTGRES_DB: savra_test
+          POSTGRES_USER: savra
+          POSTGRES_PASSWORD: ci-only-temporary-password
+        ports: ['5432:5432']
+        options: >-
+          --health-cmd "pg_isready -U savra -d savra_test"
+          --health-interval 5s --health-timeout 3s --health-retries 15
+    env:
+      DATABASE_URL: postgresql+psycopg://savra:ci-only-temporary-password@localhost:5432/savra_test
+      TEST_DATABASE_URL: postgresql+psycopg://savra:ci-only-temporary-password@localhost:5432/savra_test
+      CONSENT_SECRET: ci-only-temporary-consent-secret-aaaaaaaaaaaaaaaaaaaaaaa
+      FINGERPRINT_SECRET: ci-only-temporary-fingerprint-secret-bbbbbbbbbbbbbbbbb
+    defaults:
+      run:
+        working-directory: backend
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - run: pip install -r requirements.lock.txt
+      - run: alembic upgrade head
+      - run: pytest -q
+      - run: alembic check
+  browser:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - run: npm ci && npm run build && npx playwright install --with-deps chromium
+        working-directory: frontend
+      - run: docker build -t savra-backend ./backend && docker build -t savra-frontend ./frontend
+      - run: python scripts/test_isolated.py browser demo https
+      - run: docker build -t savra-render:preparacion .
+      - run: python scripts/test_production.py

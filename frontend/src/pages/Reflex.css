@@ -1,0 +1,171 @@
+.reflex-intro h1[tabindex]:focus { outline: none; }
+.reflex-cover {
+  display: grid;
+  grid-template-columns: minmax(0, .88fr) minmax(0, 1.12fr);
+  align-items: center;
+  gap: clamp(28px, 6vw, 90px);
+  padding-block: clamp(32px, 10svh, 100px);
+  animation: reflex-reveal .32s ease-out both;
+}
+.reflex-kicker { display: flex; align-items: center; gap: 10px; color: var(--foreground); }
+.reflex-kicker::before { content: ''; width: 18px; height: 2px; background: var(--primary); }
+.reflex-intro h1 {
+  margin-block: 13px 16px;
+  font-size: clamp(58px, 8vw, 110px);
+  line-height: .97;
+}
+.reflex-lead { max-width: 29ch; font-size: clamp(17px, 2vw, 22px); font-weight: 650; line-height: 1.4; }
+.reflex-instructions { max-width: 36ch; margin-top: 11px; color: #4F535D; font-size: 14px; line-height: 1.55; }
+.reflex-intro-actions { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 23px; }
+.break-page kbd { font: inherit; font-weight: 800; }
+
+.reflex-board {
+  position: relative;
+  isolation: isolate;
+  border-radius: 16px;
+  background: radial-gradient(circle at center, rgb(228 230 234 / .19) 1px, transparent 1.3px) center / 24px 24px,
+    var(--foreground);
+  color: var(--background);
+}
+.reflex-board::before {
+  content: '';
+  position: absolute;
+  z-index: -1;
+  inset: 12px;
+  border: 1px solid rgb(228 230 234 / .23);
+  border-radius: 9px;
+  pointer-events: none;
+}
+.reflex-poster { display: grid; place-items: center; min-height: clamp(335px, 53svh, 500px); }
+.reflex-board-label {
+  position: absolute;
+  top: 23px;
+  left: 24px;
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: .14em;
+  text-transform: uppercase;
+}
+.reflex-board-label:last-child { inset: auto 24px 23px auto; }
+.reflex-poster-target {
+  position: relative;
+  display: grid;
+  place-items: center;
+  width: clamp(120px, 19vw, 225px);
+  aspect-ratio: 1;
+  border: 1px solid rgb(228 230 234 / .38);
+  border-radius: 50%;
+}
+.reflex-poster-target::before {
+  content: '';
+  position: absolute;
+  inset: 13%;
+  border: 1px solid rgb(228 230 234 / .48);
+  border-radius: inherit;
+}
+.reflex-poster-target > span {
+  display: grid;
+  place-items: center;
+  width: 53%;
+  aspect-ratio: 1;
+  border-radius: inherit;
+  background: var(--primary);
+  color: #191B20;
+}
+.reflex-poster-target svg { width: 47%; height: auto; }
+.reflex-result {
+  display: grid;
+  justify-items: center;
+  min-width: 48%;
+  padding: 10px;
+  background: var(--foreground);
+  font-variant-numeric: tabular-nums;
+}
+.reflex-result strong { font-size: clamp(76px, 13vw, 156px); line-height: .93; letter-spacing: -.065em; }
+.reflex-result span { margin-top: 7px; color: var(--primary); font-size: 19px; font-weight: 800; }
+.reflex-result small { margin-top: 8px; color: #D0D2D9; font-size: 13px; font-weight: 650; }
+
+html:has(.break-page.is-playing) { overscroll-behavior: none; }
+.break-page.is-playing { height: 100svh; }
+.reflex-session {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  gap: 12px;
+  padding-block: clamp(12px, 2.7svh, 24px);
+}
+.reflex-hud { display: flex; flex-wrap: wrap; align-items: end; justify-content: space-between; gap: 12px; }
+.reflex-hud h1 { margin-top: 4px; font-size: clamp(24px, 5vw, 43px); }
+.reflex-stats { display: flex; gap: clamp(14px, 3vw, 34px); margin: 0; font-variant-numeric: tabular-nums; }
+.reflex-stats > div { min-width: 3.3em; padding-left: clamp(9px, 1.7vw, 19px); border-left: 1px solid #BEC2CA; }
+.reflex-stats dt { font-size: 10px; font-weight: 800; letter-spacing: .09em; text-transform: uppercase; }
+.reflex-stats dd { font-size: clamp(21px, 4vw, 37px); font-weight: 800; line-height: 1.1; }
+.reflex-time-track { height: 3px; flex: none; border-radius: 3px; overflow: hidden; background: #C8CBD2; }
+.reflex-time-track > div { height: 100%; background: var(--primary); transform-origin: left; transition: transform .2s ease; }
+.reflex-meta { display: flex; justify-content: space-between; align-items: center; gap: 8px; font-size: 11px; }
+.reflex-level { color: #4F535D; }
+.reflex-level strong { margin-right: 4px; color: var(--foreground); font-weight: 800; }
+.reflex-feedback { font-weight: 750; text-align: right; }
+.reflex-feedback.is-fault { color: #9D2E21; }
+.reflex-field {
+  display: grid;
+  flex: 1;
+  place-items: center;
+  min-height: 196px;
+  max-height: 640px;
+  cursor: crosshair;
+  touch-action: pinch-zoom;
+  user-select: none;
+}
+.reflex-cell {
+  display: grid;
+  place-items: center;
+  width: clamp(48px, 8svh, 68px);
+  aspect-ratio: 1;
+  border-radius: 50%;
+  cursor: inherit;
+}
+.reflex-cell:focus-visible { outline-color: var(--background); outline-offset: 2px; }
+.reflex-target-face, .reflex-decoy-face {
+  display: grid;
+  place-items: center;
+  width: 100%;
+  height: 100%;
+  border-radius: inherit;
+  animation: reflex-hit .13s ease-out both;
+}
+.reflex-target-face {
+  border: 1px solid #FF8C7F;
+  background: var(--primary);
+  color: #191B20;
+}
+.reflex-decoy-face { border: 1px solid #999EA9; background: #454852; color: var(--background); }
+.reflex-fault-flash {
+  position: absolute;
+  inset: 0;
+  border: 2px solid var(--primary);
+  border-radius: inherit;
+  opacity: 0;
+  pointer-events: none;
+  animation: reflex-fault .3s ease-out;
+}
+.reflex-controls { color: #4F535D; font-size: 12px; line-height: 1.4; }
+
+@keyframes reflex-reveal { from { opacity: 0; transform: translateY(7px); } to { opacity: 1; transform: translateY(0); } }
+@keyframes reflex-hit { from { transform: scale(.8); } to { transform: scale(1); } }
+@keyframes reflex-fault { from { opacity: 1; } to { opacity: 0; } }
+
+@media (max-width: 690px) {
+  .reflex-cover { grid-template-columns: 1fr; gap: 22px; padding-block: 26px; }
+  .reflex-poster { min-height: clamp(172px, 29svh, 270px); }
+  .reflex-poster:has(.reflex-result) { min-height: clamp(220px, 29svh, 270px); }
+  .reflex-intro h1 { font-size: clamp(56px, 14vw, 79px); }
+}
+@media (max-height: 480px) {
+  .break-page.is-playing .break-header { min-height: 46px; }
+  .break-page.is-playing .brand img { width: 102px; height: 34px; }
+  .reflex-session { gap: 6px; padding-block: 5px; }
+  .reflex-hud .eyebrow { display: none; }
+  .reflex-hud h1 { margin-top: 0; font-size: 24px; }
+  .reflex-stats dd { font-size: 24px; }
+}

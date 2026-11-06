@@ -1,0 +1,18 @@
+on_http_request:
+  - expressions:
+      - "req.url.scheme != 'https'"
+    actions:
+      - type: deny
+        config:
+          status_code: 403
+  - expressions:
+      - "req.method == 'POST'"
+    actions:
+      - type: rate-limit
+        config:
+          name: SAVRA - escrituras por IP
+          algorithm: sliding_window
+          capacity: 30
+          rate: 60s
+          bucket_key:
+            - conn.client_ip

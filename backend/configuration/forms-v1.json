@@ -1,0 +1,272 @@
+{
+  "version": "forms-v1",
+  "title": "Factores asociados con la intención de abandono universitario",
+  "source_namespace": "savra-msforms-original-v1",
+  "provenance": {
+    "origin": "Microsoft Forms · exportación local",
+    "options_basis": "observed_in_export",
+    "option_set_complete": false,
+    "question_wording": "Exact Excel column headers; no paraphrasing",
+    "required_basis": "SAVRA integrated policy: all closed questions required, final text optional; Forms settings unavailable",
+    "notes": "Observed categories preserved verbatim, including whitespace. Unobserved original options require questionnaire-owner review."
+  },
+  "questions": [
+    {
+      "key": "consent",
+      "prompt": "¿Aceptas participar voluntariamente en esta encuesta?",
+      "source_column": "¿Aceptas participar voluntariamente en esta encuesta?",
+      "kind": "category",
+      "section": "Elegibilidad",
+      "required": true,
+      "options": [
+        "No acepto",
+        "Sí, acepto"
+      ],
+      "eligible_values": [
+        "Sí, acepto"
+      ]
+    },
+    {
+      "key": "eligibility",
+      "prompt": "¿Actualmente estás matriculado en una carrera universitaria en Colombia?",
+      "source_column": "¿Actualmente estás matriculado en una carrera universitaria en Colombia?",
+      "kind": "category",
+      "section": "Elegibilidad",
+      "required": true,
+      "options": [
+        "No",
+        "Sí"
+      ],
+      "eligible_values": [
+        "Sí"
+      ]
+    },
+    {
+      "key": "university",
+      "prompt": "¿En cuál de estas universidades estudias actualmente?",
+      "source_column": "¿En cuál de estas universidades estudias actualmente?",
+      "kind": "category",
+      "section": "Perfil académico",
+      "required": true,
+      "options": [
+        "Corporación Universitaria del Meta (UNIMETA)",
+        "Universidad Cooperativa de Colombia (UCC)",
+        "Universidad Santo Tomás",
+        "Universidad de los Llanos (Unillanos)"
+      ]
+    },
+    {
+      "key": "age_range",
+      "prompt": "¿Cuál es tu rango de edad?",
+      "source_column": "¿Cuál es tu rango de edad?",
+      "kind": "category",
+      "section": "Perfil académico",
+      "required": true,
+      "options": [
+        "18 a 20 años",
+        "21 a 23 años",
+        "24 a 26 años",
+        "27 a 30 años"
+      ]
+    },
+    {
+      "key": "semester",
+      "prompt": "¿En qué semestre te encuentras actualmente?",
+      "source_column": "¿En qué semestre te encuentras actualmente?",
+      "kind": "category",
+      "section": "Perfil académico",
+      "required": true,
+      "options": [
+        "Segundo o tercero",
+        "Cuarto o quinto",
+        "Sexto o séptimo",
+        "Octavo o superior"
+      ]
+    },
+    {
+      "key": "career_area",
+      "prompt": "¿A qué área pertenece tu carrera?",
+      "source_column": "¿A qué área pertenece tu carrera?",
+      "kind": "category",
+      "section": "Perfil académico",
+      "required": true,
+      "options": [
+        "Administración y economía",
+        "Ciencias de la salud",
+        "Ciencias naturales ",
+        "Ciencias sociales y humanidades",
+        "Ingeniería y tecnología",
+        "MVZ"
+      ]
+    },
+    {
+      "key": "work_hours",
+      "prompt": "¿Cuántas horas semanales trabajas de forma remunerada?",
+      "source_column": "¿Cuántas horas semanales trabajas de forma remunerada?",
+      "kind": "category",
+      "section": "Experiencia académica",
+      "required": true,
+      "options": [
+        "No trabajo",
+        "De 1 a 20 horas",
+        "De 21 a 40 horas",
+        "Más de 40 horas"
+      ]
+    },
+    {
+      "key": "gpa_range",
+      "prompt": "¿En qué rango aproximadamente estuvo tu promedio académico del último semestre finalizado? (Escala 0,0 a 5,0)",
+      "source_column": "¿En qué rango aproximadamente estuvo tu promedio académico del último semestre finalizado? (Escala 0,0 a 5,0)",
+      "kind": "category",
+      "section": "Experiencia académica",
+      "required": true,
+      "options": [
+        "De 3,0 a 3,4",
+        "De 3,5 a 3,9",
+        "De 4,0 a 4,4"
+      ]
+    },
+    {
+      "key": "failed_courses",
+      "prompt": "¿Cuántas asignaturas reprobaste en el último semestre finalizado?",
+      "source_column": "¿Cuántas asignaturas reprobaste en el último semestre finalizado?",
+      "kind": "category",
+      "section": "Experiencia académica",
+      "required": true,
+      "options": [
+        "Ninguna",
+        "Una",
+        "Dos"
+      ]
+    },
+    {
+      "key": "absence_frequency",
+      "prompt": "Durante el último mes de clases, ¿con qué frecuencia faltaste a clases?",
+      "source_column": "Durante el último mes de clases, ¿con qué frecuencia faltaste a clases?",
+      "kind": "category",
+      "section": "Experiencia académica",
+      "required": true,
+      "options": [
+        "Nunca",
+        "Una vez",
+        "Dos o tres veces",
+        "Cuatro o más veces"
+      ]
+    },
+    {
+      "key": "economic_difficulty",
+      "prompt": "¿Qué tanta dificultad económica tienes actualmente para continuar tus estudios?",
+      "source_column": "¿Qué tanta dificultad económica tienes actualmente para continuar tus estudios?",
+      "kind": "category",
+      "section": "Contexto y permanencia",
+      "required": true,
+      "options": [
+        "1 - Ninguna dificultad",
+        "2 - Poca dificultad",
+        "3 - Dificultad moderada",
+        "4 - Bastante dificultad",
+        "5 - Mucha dificultad"
+      ]
+    },
+    {
+      "key": "academic_load",
+      "prompt": "¿Qué tan difícil te resulta manejar tu carga académica y tus responsabilidades personales?",
+      "source_column": "¿Qué tan difícil te resulta manejar tu carga académica y tus responsabilidades personales?",
+      "kind": "category",
+      "section": "Contexto y permanencia",
+      "required": true,
+      "options": [
+        "1 - Nada difícil",
+        "2 - Poco difícil",
+        "3 - Moderadamente difícil",
+        "4 - Bastante difícil",
+        "5 - Muy difícil"
+      ]
+    },
+    {
+      "key": "institutional_support",
+      "prompt": "¿Consideras que cuentas con suficiente apoyo académico por parte de tu universidad?",
+      "source_column": "¿Consideras que cuentas con suficiente apoyo académico por parte de tu universidad?",
+      "kind": "category",
+      "section": "Contexto y permanencia",
+      "required": true,
+      "options": [
+        "1 - Ningún apoyo",
+        "2 - Poco apoyo",
+        "3 - Apoyo moderado",
+        "4 - Bastante apoyo",
+        "5 - Mucho apoyo"
+      ]
+    },
+    {
+      "key": "motivation",
+      "prompt": "¿Qué tan motivado te sientes actualmente para continuar tu carrera?",
+      "source_column": "¿Qué tan motivado te sientes actualmente para continuar tu carrera?",
+      "kind": "category",
+      "section": "Contexto y permanencia",
+      "required": true,
+      "options": [
+        "2 - Poco motivado",
+        "3 - Moderadamente motivado",
+        "4 - Bastante motivado",
+        "5 - Muy motivado"
+      ]
+    },
+    {
+      "key": "dropout_thoughts",
+      "prompt": "¿Con qué frecuencia has pensado en abandonar tu carrera durante el semestre actual?",
+      "source_column": "¿Con qué frecuencia has pensado en abandonar tu carrera durante el semestre actual?",
+      "kind": "category",
+      "section": "Contexto y permanencia",
+      "required": true,
+      "options": [
+        "Nunca",
+        "Rara vez",
+        "Algunas veces",
+        "Frecuentemente",
+        "Muy frecuentemente"
+      ]
+    },
+    {
+      "key": "enrollment_likelihood",
+      "prompt": "¿Qué tan probable consideras que te matricularás el próximo semestre?",
+      "source_column": "¿Qué tan probable consideras que te matricularás el próximo semestre?",
+      "kind": "category",
+      "section": "Contexto y permanencia",
+      "required": true,
+      "options": [
+        "Algo probable",
+        "Muy probable",
+        "No aplica (estoy próximo a graduarme)",
+        "No estoy seguro/a"
+      ]
+    },
+    {
+      "key": "main_difficulty",
+      "prompt": "¿Cuál consideras que es el principal factor que podría dificultar tu continuidad académica?",
+      "source_column": "¿Cuál consideras que es el principal factor que podría dificultar tu continuidad académica?",
+      "kind": "category",
+      "section": "Tu perspectiva",
+      "required": true,
+      "options": [
+        "Bajo rendimiento académico",
+        "Dificultades económicas",
+        "Dificultades familiares o personales",
+        "Exceso de carga académica",
+        "Falta de motivación con la carrera",
+        "Falta de tiempo por trabajo",
+        "No identifico dificultades importantes",
+        "Otro"
+      ]
+    },
+    {
+      "key": "open_comment",
+      "prompt": "¿Qué apoyo o cambio te ayudaría más a continuar tus estudios?",
+      "source_column": "¿Qué apoyo o cambio te ayudaría más a continuar tus estudios?",
+      "kind": "text",
+      "section": "Tu perspectiva",
+      "required": false,
+      "options": []
+    }
+  ]
+}
