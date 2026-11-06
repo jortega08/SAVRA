@@ -8,7 +8,12 @@ from urllib.parse import quote
 
 ROOT = Path(__file__).resolve().parents[1]
 PUBLIC_DOCS = {"docs/despliegue-render.md", "docs/migracion-neon.md", "docs/seguridad.md", "docs/preparacion-validacion.md", "docs/encuesta-v2.md"}
-BRANDING = {"frontend/public/branding/logo_savra.png", "frontend/public/branding/isotipo_savra.png"}
+BRANDING = {
+    "frontend/public/branding/logo_savra.png", "frontend/public/branding/isotipo_savra.png",
+    "frontend/public/branding/savra-social.png", "frontend/public/favicon.ico",
+    "frontend/public/favicon-16x16.png", "frontend/public/favicon-32x32.png",
+    "frontend/public/apple-touch-icon.png", "frontend/public/icon-192.png", "frontend/public/icon-512.png",
+}
 TEXT_EXTENSIONS = {".py", ".ts", ".tsx", ".js", ".mjs", ".css", ".html", ".json", ".md", ".txt", ".yaml", ".yml", ".toml", ".ini", ".conf", ".sh", ".ps1", ".mako"}
 SPECIAL_FILES = {".gitignore", ".dockerignore", ".gitattributes", ".env.example", ".env.production.example", ".gitkeep", "Dockerfile"}
 TOKEN_PATTERNS = [

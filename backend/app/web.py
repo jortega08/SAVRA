@@ -10,6 +10,8 @@ from fastapi.staticfiles import StaticFiles
 SPA_PATH = re.compile(r"(?:index\.html|break/?|consentimiento/?|encuesta/?|gracias/?|"
                       r"observatorio(?:/(?:academico|permanencia|institucional|datos|metodologia))?/?)?")
 WRITE_PATHS = {"/api/responses", "/api/participation/start"}
+PUBLIC_ICONS = {"favicon.ico", "favicon-16x16.png", "favicon-32x32.png",
+                "apple-touch-icon.png", "icon-192.png", "icon-512.png"}
 
 
 class Bucket:
@@ -76,6 +78,8 @@ def install_frontend(app, directory):
 
     @app.get("/{path:path}", include_in_schema=False)
     def frontend(path: str):
+        if path in PUBLIC_ICONS and (root / path).is_file():
+            return FileResponse(root / path, media_type="image/x-icon" if path.endswith(".ico") else "image/png")
         if not SPA_PATH.fullmatch(path):
             raise HTTPException(404, "Página no encontrada")
         return FileResponse(root / "index.html", headers={"Cache-Control": "no-store"})

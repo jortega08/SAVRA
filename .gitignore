@@ -58,6 +58,12 @@ credentials/
 *.mp3
 !/frontend/public/branding/logo_savra.png
 !/frontend/public/branding/isotipo_savra.png
+!/frontend/public/branding/savra-social.png
+!/frontend/public/favicon-16x16.png
+!/frontend/public/favicon-32x32.png
+!/frontend/public/apple-touch-icon.png
+!/frontend/public/icon-192.png
+!/frontend/public/icon-512.png
 
 # Dependencias, ejecución, resultados de pruebas y temporales.
 node_modules/

@@ -13,6 +13,7 @@ test('imagen real: encuesta HTTPS, confirmación y deduplicación', async ({ pag
   await expect(page).toHaveURL(origin + '/consentimiento')
   await page.getByRole('button', { name: 'Aceptar y comenzar' }).click()
   await expect(page.locator('.survey-form')).toBeVisible()
+  await expect(page.getByRole('button', { name: 'Compartir SAVRA' })).toHaveCount(0)
   const consent = (await context.cookies()).find(cookie => cookie.name === 'savra_participation')!
   expect(consent.secure && consent.httpOnly).toBe(true)
   expect(consent.sameSite).toBe('Strict')
@@ -90,6 +91,9 @@ test('imagen real: encuesta HTTPS, confirmación y deduplicación', async ({ pag
   await page.getByRole('button', { name: 'Enviar respuestas' }).click()
   await expect(page).toHaveURL(origin + '/gracias')
   await expect(page.getByText('Respuesta guardada')).toBeVisible()
+  await expect(page.getByRole('button', { name: 'Compartir SAVRA' })).toBeVisible()
+  await page.getByRole('button', { name: 'Más opciones' }).click()
+  await page.screenshot({ path: '../.local/sharing-audit/thanks-mobile.png', fullPage: true })
   await page.getByRole('link', { name: 'Volver al inicio', exact: true }).first().click()
   await expect(page.getByRole('link', { name: 'Participación completada' })).toBeVisible()
   await expect(page.getByRole('link', { name: 'Responder encuesta' })).toHaveCount(0)

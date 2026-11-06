@@ -1,6 +1,7 @@
 import { Link } from 'react-router-dom'
 import { ArrowUpRight, ChartNoAxesColumnIncreasing, UserRound } from 'lucide-react'
 import { Brand } from '@/components/shared'
+import ShareSavra from '@/components/ShareSavra'
 import { Button } from '@/components/ui/button'
 import { COMPLETED_MESSAGE, useCompletedParticipation } from '@/lib/participation'
 
@@ -18,6 +19,7 @@ export default function Welcome({ demo = false }: { demo?: boolean }) {
         </>}
       </div>
       <Link className="welcome-break-link" to="/break">SAVRA Break <ArrowUpRight aria-hidden="true" size={15} /></Link>
+      {!demo && <ShareSavra />}
     </section>
   </main>
 }

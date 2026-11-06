@@ -36,6 +36,7 @@ test('inicio: conserva los recorridos originales y enlaza a SAVRA Break', async 
   expect(await screen.findByRole('link', { name: 'Responder encuesta' })).toHaveAttribute('href', '/consentimiento')
   expect(screen.getByRole('link', { name: 'Explorar resultados' })).toHaveAttribute('href', '/observatorio')
   expect(screen.getByRole('link', { name: 'SAVRA Break' })).toHaveAttribute('href', '/break')
+  expect(screen.getByRole('button', { name: 'Compartir SAVRA' })).toBeVisible()
 })
 test('rechazar consentimiento regresa a inicio sin enviar una respuesta', async () => {
   mount('/consentimiento')
@@ -126,9 +127,11 @@ test('solo muestra agradecimiento tras confirmación del servidor y conserva el 
   expect(await screen.findByRole('alert')).toHaveTextContent('No se guardó')
   expect(screen.queryByText('Gracias por')).not.toBeInTheDocument()
   expect(screen.queryByRole('link', { name: 'Elegir minijuego' })).not.toBeInTheDocument()
+  expect(screen.queryByRole('button', { name: 'Compartir SAVRA' })).not.toBeInTheDocument()
   failSubmit = false
   fireEvent.click(screen.getByRole('button', { name: 'Enviar respuestas' }))
   await screen.findByText('Respuesta guardada')
+  expect(screen.getByRole('button', { name: 'Compartir SAVRA' })).toBeVisible()
   expect(screen.getByRole('link', { name: 'Elegir minijuego' })).toHaveAttribute('href', '/break')
   expect(screen.getByRole('link', { name: 'Explorar resultados' })).toHaveAttribute('href', '/observatorio')
   expect(submitted).toBe(2)

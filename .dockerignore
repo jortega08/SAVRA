@@ -23,6 +23,13 @@
 !frontend/public/branding/
 !frontend/public/branding/logo_savra.png
 !frontend/public/branding/isotipo_savra.png
+!frontend/public/branding/savra-social.png
+!frontend/public/favicon.ico
+!frontend/public/favicon-16x16.png
+!frontend/public/favicon-32x32.png
+!frontend/public/apple-touch-icon.png
+!frontend/public/icon-192.png
+!frontend/public/icon-512.png
 !scripts/
 !scripts/database_manifest.py
 **/__pycache__

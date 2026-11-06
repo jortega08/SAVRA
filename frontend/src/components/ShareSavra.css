@@ -1,0 +1,19 @@
+.share-savra { margin-top: 24px; padding-top: 16px; border-top: 1px solid #CFD2D9; text-align: left; }
+.share-controls, .share-options { display: flex; align-items: center; flex-wrap: wrap; gap: 4px 16px; }
+.share-controls > .savra-button { min-height: 44px; padding-inline: 0; font-size: 12px; }
+.share-more { display: inline-flex; align-items: center; gap: 6px; border: 0; background: transparent; color: #555963; font-size: 12px; min-height: 44px; padding: 8px 4px; }
+.share-more svg { transition: transform .16s ease; }
+.share-more[aria-expanded='true'] svg { transform: rotate(180deg); }
+.share-options { margin-top: 8px; animation: share-reveal .16s ease; }
+.share-options[hidden] { display: none; }
+.share-options > a, .share-options > button { display: inline-flex; align-items: center; gap: 8px; min-height: 44px; padding: 8px 4px; font-size: 12px; font-weight: 650; color: #2B2D33; background: transparent; border: 0; border-bottom: 1px solid transparent; transition: border-color .16s ease; }
+.share-options > a:hover, .share-options > button:hover { border-bottom-color: #F2412C; }
+.share-status { display: flex; align-items: center; gap: 6px; font-size: 12px; line-height: 1.6; color: #40434B; }
+.share-status:not(:empty) { margin-top: 10px; }
+.share-manual { max-width: 620px; margin-top: 12px; }
+.share-manual label { display: block; font-size: 12px; font-weight: 700; margin-bottom: 8px; }
+.share-manual textarea { display: block; width: 100%; padding: 12px; border: 1px solid #AEB3BE; border-radius: 8px; background: #F5F6F8; color: #2B2D33; font-size: 13px; line-height: 1.6; resize: vertical; }
+.thanks-page .share-controls, .thanks-page .share-options, .thanks-page .share-status { justify-content: center; }
+.thanks-page .share-manual { margin-inline: auto; }
+@keyframes share-reveal { from { opacity: 0; transform: translateY(-3px); } to { opacity: 1; transform: translateY(0); } }
+@media (prefers-reduced-motion: reduce) { .share-options { animation: none; } .share-more svg, .share-options > a, .share-options > button { transition: none; } }

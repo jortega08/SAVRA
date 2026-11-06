@@ -27,7 +27,7 @@ function DataApp() {
   useEffect(loadMode, [])
   useEffect(() => {
     window.scrollTo(0, 0)
-    document.title = mode === 'demo' ? 'SAVRA · Demostración técnica' : 'SAVRA · ' + (isObservatory ? 'Centro de observación' : 'Entender para transformar')
+    document.title = mode === 'demo' ? 'SAVRA · Demostración técnica' : isObservatory ? 'SAVRA · Centro de observación' : 'SAVRA | Tu experiencia universitaria cuenta'
   }, [location.pathname, mode, isObservatory])
   if (!mode) return error ? <ErrorState message={error} retry={loadMode} /> : <Loading text="Conectando con SAVRA…" />
   const demo = mode === 'demo'

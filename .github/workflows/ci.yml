@@ -68,7 +68,7 @@ jobs:
       - uses: actions/setup-python@v5
         with:
           python-version: '3.12'
-      - run: npm ci && npm run build && npx playwright install --with-deps chromium
+      - run: npm ci && npm run build && npx playwright install --with-deps chromium webkit
         working-directory: frontend
       - run: docker build -t savra-backend ./backend && docker build -t savra-frontend ./frontend
       - run: python scripts/test_isolated.py browser demo https

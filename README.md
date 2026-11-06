@@ -33,7 +33,7 @@ Push-Location frontend
 npm ci
 npm test
 npm run build
-npx playwright install chromium
+npx playwright install chromium webkit
 Pop-Location
 
 docker build -t savra-backend:latest ./backend
@@ -55,3 +55,21 @@ python scripts/audit_repository.py
 Ajuste los conteos esperados si se han recibido nuevas participaciones legítimas. El manifiesto privado compara todas las tablas, huellas, relaciones y secuencias. Los textos abiertos y las respuestas individuales no se exponen mediante la API pública; los agregados conservan el mínimo de cinco registros y las reglas de supresión existentes.
 
 Las definiciones del cuestionario son código de configuración, no respuestas. El catálogo inicial refleja las opciones observadas en la exportación original; el responsable debe revisar opciones nunca observadas antes de crear otra versión. Las pruebas generan fixtures exclusivamente dentro de bases desechables.
+
+## Identidad y enlaces compartidos
+
+La invitación pública apunta siempre a `https://savra-wacb.onrender.com`. La bienvenida y el agradecimiento confirmado ofrecen «Compartir SAVRA», WhatsApp y copia del enlace o la invitación. La cancelación del diálogo nativo no muestra errores. Si el navegador impide el portapapeles, aparece un campo seleccionable para copiar manualmente. No se comparten respuestas, cookies, rutas de participación ni parámetros de la URL actual.
+
+`frontend/index.html` contiene los metadatos Open Graph y Twitter en el HTML inicial que sirve FastAPI, sin depender de React. La imagen pública es `/branding/savra-social.png` (1200 × 630). El favicon ICO incluye 16, 32 y 48 px; los PNG incluyen 16, 32, 192 y 512 px, además del Apple Touch Icon de 180 px. Se conservan intactos el isotipo y el logotipo originales.
+
+Para regenerar estos recursos con la tipografía Manrope incluida en el proyecto:
+
+```powershell
+Push-Location frontend
+node scripts/generate-branding.mjs
+Pop-Location
+```
+
+La suite `scripts/test_production.py` comprueba el HTML sin JavaScript, los recursos sobre HTTPS, el portapapeles real en Chromium, la navegación por teclado y perfiles móviles Android/Chromium e iPhone/WebKit. Los diálogos del sistema y los envíos a WhatsApp se simulan; no se envían mensajes. Las capturas quedan en `.local/sharing-audit/`. En Windows, si Python de Microsoft Store no ve los navegadores instalados, ejecute el script con `.\.venv\Scripts\python.exe` del entorno local.
+
+El push y el despliegue requieren autorización. Después de publicar, verificar con un GET sin JavaScript que el dominio de Render entregue `og:image` y que esa URL y los iconos respondan 200 con su tipo de imagen. La vista previa en las aplicaciones externas requiere esa publicación; el caché de cada plataforma puede tardar en renovarse. Si Render falla al arrancar, revisar el arranque y la salud del servicio por separado.

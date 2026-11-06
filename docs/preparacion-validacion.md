@@ -48,3 +48,32 @@ La auditoría se ejecuta sobre todos los candidatos antes de agregarlos, sobre e
 ## Pendientes externos
 
 Se requiere autorización expresa para `git push -u origin HEAD:main`. Después se podrá restaurar el histórico en Neon durante una ventana sin escrituras y comparar manifiestos. El titular deberá conectar GitHub y configurar las variables en Render siguiendo la guía; las pruebas contra Neon y el dominio real se harán entonces, sin envíos de prueba a la base migrada.
+
+## Favicon y sistema para compartir · 6 de noviembre de 2026
+
+Se agregaron iconos derivados exclusivamente de `frontend/public/branding/isotipo_savra.png`, conservando su proporción y transparencia: ICO con 16/32/48 px, PNG de 16/32/192/512 px y Apple Touch Icon de 180 px. Los dos originales de marca permanecen intactos. La tarjeta `frontend/public/branding/savra-social.png` mide 1200 × 630 px e integra el logotipo, el isotipo, Manrope y la paleta #2B2D33 / #E4E6EA / #F2412C. No contiene estadísticas.
+
+Los metadatos están en `frontend/index.html` y se entregan con `FileResponse` antes de ejecutar React. `og:image` apunta a `https://savra-wacb.onrender.com/branding/savra-social.png`. FastAPI permite únicamente los nombres explícitos de iconos en la raíz; las rutas API y las restricciones de archivos privados se mantienen. Las listas de Docker y de la auditoría incorporan solo los nuevos recursos revisados.
+
+La bienvenida y el agradecimiento confirmado incluyen un control discreto «Compartir SAVRA». Intenta Web Share API y ofrece WhatsApp, copia de enlace e invitación y selección manual si el portapapeles está bloqueado. Las cancelaciones nativas son normales. El mensaje usa la URL pública fija, sin respuestas, cookies, recibos, parámetros ni fragmentos de navegación. El formulario y el consentimiento no incluyen controles de compartir.
+
+| Validación de este cambio | Resultado |
+| --- | --- |
+| Vitest / Testing Library | 60 aprobadas, incluidas 9 pruebas específicas de compartir |
+| Pytest local, SQLite en memoria | 195 aprobadas |
+| TypeScript y Vite | Build correcto |
+| Dockerfile raíz de producción | Imagen compilada correctamente con todos los recursos |
+| Navegador sobre imagen de producción y HTTPS | 11 aprobadas: flujo existente, rutas, seguridad, metadatos sin JS, iconos, copia real y compartir |
+| Regresión analítica sobre la misma imagen | 1 aprobada |
+| Perfiles de compartir | Escritorio/Chromium, Android/Chromium e iPhone/WebKit; sin desbordamiento horizontal |
+| Accesibilidad | Teclado, confirmación con `role=status`, foco y selección de la alternativa manual |
+| Privacidad del contenido compartido | Solo mensaje fijo y URL pública, incluso desde una URL con recibo y fragmento ficticios |
+| Ciclo de producción aislado | Arranque, rollback, TLS, reinicio y dump/restore con manifiestos idénticos |
+| Memoria tras reiniciar | 64,05 MiB de un límite de 512 MiB, sin OOM |
+| Auditoría del repositorio | Correcta sobre candidatos, índice e historial; sin secretos ni rutas privadas |
+
+Las pruebas móviles usan perfiles emulados; los diálogos nativos se simulan para probar éxito, cancelación y fallos. No se enviaron mensajes ni se verificó un teléfono físico. La copia a un portapapeles real se probó en Chromium sobre HTTPS, admitiendo la normalización CRLF de Windows. Las capturas revisadas están en `.local/sharing-audit/`, fuera de Git. La prueba de backend que lee los PNG del repositorio se omite dentro de la imagen de backend independiente, donde no existe el frontend; la suite de producción comprueba los bytes reales de la imagen completa.
+
+En la consulta de solo lectura, la página de Render y `/api/health` respondieron HTTP 200; la versión publicada aún carece de los nuevos metadatos. No se hizo push ni despliegue. La disponibilidad de los nuevos recursos en la URL pública y la tarjeta real de WhatsApp/Facebook quedan pendientes de publicar con autorización y de que las plataformas renueven su caché. No se modificaron la base real, los registros históricos, los secretos, las variables de Render ni el cuestionario activo.
+
+Permanecen las advertencias previas sobre el tamaño del chunk ECharts y la deprecación httpx de Starlette. Los comandos reproducibles están en el README; en esta máquina la suite de producción se ejecutó con `.\.venv\Scripts\python.exe scripts/test_production.py` para evitar la redirección del almacenamiento de navegadores de Python de Microsoft Store.

@@ -104,7 +104,7 @@ print('TLS PostgreSQL y contenido mínimo de la imagen: correctos')
 """
         docker("exec", app, "python", "-c", probe)
         env.update(SAVRA_PRODUCTION_TEST=token, SAVRA_E2E_TLS=str(directory))
-        subprocess.run(["node", "node_modules/@playwright/test/cli.js", "test", "production.spec.ts", "--config=playwright.production.config.ts"],
+        subprocess.run(["node", "node_modules/@playwright/test/cli.js", "test", "production.spec.ts", "sharing.spec.ts", "--config=playwright.production.config.ts"],
                        cwd=ROOT / "frontend", env=env, check=True)
 
         usage = json.loads(docker("stats", "--no-stream", "--format", "{{json .}}", app,
