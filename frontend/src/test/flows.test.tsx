@@ -2,7 +2,7 @@ import { fireEvent, render, screen, waitFor } from '@testing-library/react'
 import { MemoryRouter, Route, Routes } from 'react-router-dom'
 import { beforeEach, expect, test, vi } from 'vitest'
 import Consent from '@/pages/Consent'
-import Survey from '@/pages/Survey'
+import Survey, { QuestionField } from '@/pages/Survey'
 import Thanks from '@/pages/Thanks'
 import Welcome from '@/pages/Welcome'
 import { Overview } from '@/pages/Observatory'
@@ -80,6 +80,42 @@ test('no permite avanzar si falta una respuesta obligatoria', async () => {
   fireEvent.submit(screen.getByRole('button', { name: 'Siguiente' }).closest('form')!)
   expect(await screen.findByRole('alert')).toHaveTextContent('Completa todas')
   expect(submitted).toBe(0)
+})
+
+test('cancelar descarta la sesión y al volver exige consentimiento sin enviar datos', async () => {
+  mount('/encuesta')
+  fireEvent.change(await screen.findByLabelText('¿Actualmente estás matriculado?'), { target: { value: 'Sí' } })
+  fireEvent.click(screen.getByRole('button', { name: 'Siguiente' }))
+  await screen.findByLabelText('Motivación')
+  fireEvent.click(screen.getByRole('button', { name: 'Cancelar encuesta' }))
+  await screen.findByRole('link', { name: 'Responder encuesta' })
+  expect(accepted).toBe(false); expect(submitted).toBe(0)
+  fireEvent.click(screen.getByRole('link', { name: 'Responder encuesta' }))
+  await screen.findByRole('heading', { name: 'Consentimiento informado' })
+  fireEvent.click(screen.getByRole('button', { name: 'Aceptar y comenzar' }))
+  expect(await screen.findByLabelText('¿Actualmente estás matriculado?')).toHaveValue('')
+  expect(submitted).toBe(0)
+})
+
+test('regresar al inicio descarta respuestas del componente sin enviar datos', async () => {
+  mount('/encuesta')
+  fireEvent.change(await screen.findByLabelText('¿Actualmente estás matriculado?'), { target: { value: 'Sí' } })
+  fireEvent.click(screen.getByRole('link', { name: 'Volver al inicio' }))
+  fireEvent.click(await screen.findByRole('link', { name: 'Responder encuesta' }))
+  fireEvent.click(await screen.findByRole('button', { name: 'Aceptar y comenzar' }))
+  expect(await screen.findByLabelText('¿Actualmente estás matriculado?')).toHaveValue('')
+  expect(submitted).toBe(0)
+})
+
+test('áreas: ejemplos legibles y selección inclusiva sin convertirlos en el valor', () => {
+  const onChange = vi.fn()
+  render(<QuestionField question={{ key: 'career_area', prompt: 'Área de tu carrera', kind: 'category', section: 'Perfil', required: true,
+    options: [{ value: 'Ciencias naturales, matemáticas y estadística', label: 'Ciencias naturales, matemáticas y estadística', example: 'Biología y química.' },
+      { value: 'Otra área / No encuentro mi carrera', label: 'Otra área / No encuentro mi carrera', example: 'Otras carreras.' }] }} value="" onChange={onChange} />)
+  expect(screen.getByRole('group', { name: 'Área de tu carrera' })).toBeVisible()
+  expect(screen.getByText('Biología y química.')).toBeVisible()
+  fireEvent.click(screen.getByRole('radio', { name: /Otra área/ }))
+  expect(onChange).toHaveBeenCalledWith('Otra área / No encuentro mi carrera')
 })
 test('solo muestra agradecimiento tras confirmación del servidor y conserva el formulario tras error', async () => {
   failSubmit = true; mount('/encuesta')

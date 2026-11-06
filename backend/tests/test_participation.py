@@ -211,11 +211,45 @@ def test_other_browser_or_shared_device_profile_can_participate(client, question
 def test_receipt_blocks_another_preexisting_consent_session(client, questionnaire, answers, db):
     begin(client, questionnaire)
     old_session = client.cookies.get(COOKIE)
+    client.post("/api/participation/start", json={"accepted": False, "questionnaire_version": questionnaire.version})
     begin(client, questionnaire)
     save(client, questionnaire, answers)
     client.cookies.set(COOKIE, old_session, domain="savra.test", path="/api")
     assert save(client, questionnaire, answers).status_code == 409
     assert db.scalar(select(func.count()).select_from(SurveyResponse)) == 1
+
+
+def test_reaccepting_unsent_session_retains_identity_without_storing(client, questionnaire, db):
+    from app.main import signer
+    begin(client, questionnaire)
+    original = signer.loads(client.cookies.get(COOKIE))
+    begin(client, questionnaire)
+    assert signer.loads(client.cookies.get(COOKIE)) == original
+    assert db.scalar(select(func.count()).select_from(SurveyResponse)) == 0
+
+
+def test_cancel_after_lost_receipt_recovers_completion_and_cannot_duplicate(client, questionnaire, answers, db):
+    begin(client, questionnaire)
+    save(client, questionnaire, answers)
+    client.cookies.delete(COMPLETED_COOKIE)
+    result = client.post("/api/participation/start", json={"accepted": False, "questionnaire_version": questionnaire.version})
+    assert result.status_code == 200
+    assert COOKIE not in client.cookies
+    assert COMPLETED_COOKIE in client.cookies
+    assert client.post("/api/participation/start", json={"accepted": True, "questionnaire_version": questionnaire.version}).status_code == 409
+    assert client.get("/api/participation/status").json()["saved"] is True
+    assert db.scalar(select(func.count()).select_from(SurveyResponse)) == 1
+
+
+def test_cancel_unsent_session_requires_new_consent_and_changes_identity(client, questionnaire, db):
+    from app.main import signer
+    begin(client, questionnaire)
+    old = signer.loads(client.cookies.get(COOKIE))["nonce"]
+    client.post("/api/participation/start", json={"accepted": False, "questionnaire_version": questionnaire.version})
+    assert client.get("/api/participation/status").status_code == 403
+    begin(client, questionnaire)
+    assert signer.loads(client.cookies.get(COOKIE))["nonce"] != old
+    assert db.scalar(select(func.count()).select_from(SurveyResponse)) == 0
 
 
 def test_historical_forms_and_existing_rows_are_untouched(client, questionnaire, answers, db):

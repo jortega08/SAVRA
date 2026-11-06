@@ -72,6 +72,19 @@ h2 { letter-spacing: -.035em; font-weight: 800; }
 .question-field select, .question-field textarea, .filters select { width: 100%; background: #FCFCFD; color: #2B2D33; border: 1px solid #C7CBD4; border-radius: 9px; padding: 11px 13px; min-height: 46px; font-size: 13px; }
 .question-field textarea { resize: vertical; min-height: 130px; }
 .question-field small { font-size: 11px; color: #676B74; }
+.survey-fields { padding: 0; margin: 0; border: 0; min-width: 0; }
+.area-field { grid-column: 1 / -1; padding: 0; margin: 0; border: 0; min-width: 0; }
+.area-field legend { padding: 0; margin-bottom: 10px; font-size: 13px; font-weight: 750; line-height: 1.65; }
+.area-options { display: grid; }
+.area-options > label { display: grid; grid-template-columns: 18px minmax(0, 1fr); gap: 11px; align-items: start; padding: 12px 0; border-bottom: 1px solid #D6D9E0; cursor: pointer; }
+.area-options > label:last-child { border-bottom: 0; }
+.area-options input { width: 18px; height: 18px; margin: 2px 0 0; accent-color: #F83427; }
+.area-options .area-label { display: block; font-size: 13px; font-weight: 650; line-height: 1.5; overflow-wrap: anywhere; }
+.area-options small { display: block; margin-top: 3px; line-height: 1.6; }
+.area-options > label:has(input:focus-visible) { outline: 2px solid #F83427; outline-offset: 3px; }
+.cancel-survey { display: block; margin: 18px auto 0; border: 0; background: none; color: #676B74; font: inherit; font-size: 12px; min-height: 44px; padding: 8px 12px; cursor: pointer; }
+.cancel-survey:disabled { opacity: .6; cursor: default; }
+.variable-version { display: block; margin-top: 5px; font-size: 10px; font-weight: 400; color: #676B74; }
 .optional { display: inline-block; font-weight: 500; font-size: 10px; background: #E7E9EE; padding: 1px 6px; border-radius: 4px; margin-left: 8px; }
 .survey-footer { margin-top: 35px; padding-top: 25px; border-top: 1px solid #D7DAE1; display: flex; justify-content: space-between; align-items: center; gap: 24px; }
 .survey-footer > p { font-size: 11px; display: flex; gap: 10px; align-items: center; max-width: 360px; color: #626670; line-height: 1.6; }

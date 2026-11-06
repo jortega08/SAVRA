@@ -89,6 +89,7 @@ function ExpandedChart({ chart, view, demo, insight, order, onClose }: {
       <ChartTable chart={chart} view={view} demo={demo} />
     </> : <><h3 className="chart-detail-status">{unavailableTitle(chart)}</h3><p className="chart-rationale">{chart.message}</p></>}
     <details className="chart-definition"><summary>Pregunta y criterio de cálculo</summary>
+      {chart.introduced_in && <p>Pregunta incorporada desde {chart.introduced_in}. El histórico anterior no contiene esta variable.</p>}
       {chart.definition && <p>{chart.definition}</p>}
       <p>{basis}</p>
       {ready && <p>{viewInfo[view].reason}</p>}

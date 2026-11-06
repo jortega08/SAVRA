@@ -93,15 +93,24 @@ class StartRequest(BaseModel):
 
 @app.post("/api/participation/start")
 def start(body: StartRequest, request: Request, response: Response, db: Session = Depends(get_db)):
+    # Recover a committed receipt before clearing consent, even if its HTTP
+    # response was lost. Cancellation must not erase completion recognition.
+    completed = confirmed_participation(request, response, db)
     if not body.accepted:
         response.delete_cookie(COOKIE, **COOKIE_OPTIONS)
         return {"accepted": False}
-    if confirmed_participation(request, response, db):
-        raise HTTPException(409, "Desde este navegador ya se registró una participación. Gracias por contribuir a SAVRA.")
+    if completed:
+        response.status_code = 409
+        return {"detail": "Desde este navegador ya se registró una participación. Gracias por contribuir a SAVRA."}
     q = active_questionnaire(db)
     if q is None or body.questionnaire_version != q.version:
         raise HTTPException(409, "El cuestionario cambió. Revisa el consentimiento de nuevo.")
-    token = signer.dumps({"version": q.version, "nonce": secrets.token_hex(32)})
+    session = consent_session(request, required=False)
+    # Returning to the welcome page or consenting again must not create a new
+    # identity while the same unsent session (or a delayed submission) exists.
+    if session is None or session["version"] != q.version:
+        session = {"version": q.version, "nonce": secrets.token_hex(32)}
+    token = signer.dumps(session)
     response.set_cookie(COOKIE, token, max_age=7200, **COOKIE_OPTIONS)
     return {"accepted": True}
 

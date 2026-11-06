@@ -10,7 +10,7 @@ RUN npm run build
 FROM python:3.12-slim AS runtime
 ENV PYTHONDONTWRITEBYTECODE=1 PYTHONUNBUFFERED=1 \
     APP_ENV=production DATA_MODE=real PORT=10000 \
-    FRONTEND_DIST=/app/static QUESTIONNAIRE_FILE=/app/configuration/forms-v1.json
+    FRONTEND_DIST=/app/static QUESTIONNAIRE_FILE=/app/configuration/savra-integrada-v2.json
 WORKDIR /app
 COPY backend/requirements.production.lock.txt ./
 RUN pip install --no-cache-dir -r requirements.production.lock.txt \
@@ -19,6 +19,7 @@ COPY --chown=savra:savra backend/app ./app
 COPY --chown=savra:savra backend/migrations ./migrations
 COPY --chown=savra:savra backend/alembic.ini ./
 COPY --chown=savra:savra backend/configuration/forms-v1.json ./configuration/forms-v1.json
+COPY --chown=savra:savra backend/configuration/savra-integrada-v2.json ./configuration/savra-integrada-v2.json
 COPY --chown=savra:savra scripts/database_manifest.py ./tools/database_manifest.py
 COPY --from=frontend-build --chown=savra:savra /build/frontend/dist ./static
 USER savra

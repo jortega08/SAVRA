@@ -2,9 +2,9 @@
 
 ## Repositorio preparado
 
-URL proporcionada por el titular: `https://github.com/jortega08/SAVRA.git`. La visibilidad privada se conserva; no se ha cambiado ni se ha publicado contenido.
+URL proporcionada por el titular: `https://github.com/jortega08/SAVRA.git`. El primer commit ecdb041 ya se publicó con autorización expresa. La actualización de encuesta v2 permanece local hasta una nueva autorización; no se cambia la visibilidad privada.
 
-La rama `codex/preparacion-render` contiene el primer commit completo y revisado para GitHub. El historial local anterior permanece en `main`, separado de esta rama. Suba únicamente la rama preparada: no use `--all`, `--mirror`, `--tags` ni un push de la antigua `main`.
+La rama `codex/preparacion-render` conserva el primer commit completo y la actualización de encuesta v2. El historial local anterior permanece en `main`, separado de esta rama. Suba únicamente la rama preparada: no use `--all`, `--mirror`, `--tags` ni un push de la antigua `main`.
 
 Antes del push se requiere la autorización expresa del titular. Después de recibirla:
 
@@ -43,7 +43,7 @@ Render expone el servicio por HTTPS y reenvía tráfico a `0.0.0.0:$PORT`; propo
 | `DB_MAX_OVERFLOW` | `1`. |
 | `PORT` | Lo proporciona Render; la imagen usa `10000` cuando no se proporciona. No fijar `8000`. |
 | `FRONTEND_DIST` | `/app/static`, incluido en la imagen; no requiere configuración manual. |
-| `QUESTIONNAIRE_FILE` | `/app/configuration/forms-v1.json`, incluido en la imagen; no requiere configuración manual. |
+| `QUESTIONNAIRE_FILE` | `/app/configuration/savra-integrada-v2.json`, incluido en la imagen; no requiere configuración manual. Un destino que ya tiene cuestionario activo conserva esa selección hasta una activación administrativa explícita. |
 
 No configure `POSTGRES_PASSWORD`, `POSTGRES_USER` ni `POSTGRES_DB` en Render: pertenecen a Compose local. No copie automáticamente `.env`. Traslade solo las variables requeridas desde una interfaz privada; no las pegue en el chat. Al cambiar dominio, actualice `PUBLIC_ORIGIN` y vuelva a desplegar.
 

@@ -15,7 +15,7 @@ class Settings(BaseSettings):
     fingerprint_secret: str
     public_origin: str = "http://localhost:8080"
     data_mode: str = "real"
-    questionnaire_file: str = "/app/configuration/forms-v1.json"
+    questionnaire_file: str = "/app/configuration/savra-integrada-v2.json"
     min_group_size: int = 5
     frontend_dist: str | None = None
     db_pool_size: int = 2

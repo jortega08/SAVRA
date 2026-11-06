@@ -5,16 +5,17 @@ use one global category plan; if it is unsafe in any partition, only the unfilte
 distribution is released. Cross tables are withheld in full, never cell by cell.
 """
 from collections import Counter
+from copy import copy
 from dataclasses import dataclass
 from functools import lru_cache
 from pathlib import Path
 
-from sqlalchemy import func, select
+from sqlalchemy import and_, case, func, select
 from sqlalchemy.orm import Session
 
 from .config import get_settings
 from .models import Answer, Question, Questionnaire, SurveyResponse
-from .questionnaires import DEMO_NOTICE, DEMO_VERSION, load_definition
+from .questionnaires import DEMO_NOTICE, DEMO_VERSION, INTEGRATED_VERSION, load_definition
 
 POOL = "Otras categorías · agrupadas por privacidad"
 PROTECTED = "Valores reservados por privacidad. Los recuentos, márgenes o filtros relacionados podrían revelar grupos pequeños."
@@ -44,7 +45,13 @@ MOBILITY_TITLES = {
     "commute_difficulty": "Dificultad para llegar a la universidad",
 }
 TITLES.update(MOBILITY_TITLES)
+EXTENDED_TITLES = {"relocated_for_study": "Cambio de municipio para estudiar", "preferred_support": "Apoyo institucional preferido",
+                   "career_area": "Área de conocimiento"}
+TITLES.update(EXTENDED_TITLES)
+REAL_MOBILITY_KEYS = ("relocated_for_study", "transport_mode", "commute_time", "weekly_transport_cost", "mobility_delay", "preferred_support")
+REVISED_KEYS = {"career_area", "gpa_range", "failed_courses", "main_difficulty", "semester"}
 ORDINAL = set(TITLES) - {"university", "main_difficulty", "transport_mode"}
+ORDINAL -= set(EXTENDED_TITLES)
 PAIRS = ["motivation", "economic_difficulty", "academic_load", "institutional_support", "absence_frequency", "work_hours", "semester"]
 RULES = {
     "economic_difficulty": ("Dificultad económica elevada", ["4 - Bastante dificultad", "5 - Mucha dificultad"]),
@@ -73,26 +80,53 @@ FLOW_GROUPS = {
 
 
 @lru_cache
-def reference(version="forms-v1"):
+def reference_definition(version="forms-v1"):
     path = Path(__file__).resolve().parents[1] / "configuration" / f"{version}.json"
-    return {q.key: q for q in load_definition(path).questions}
+    return load_definition(path)
+
+
+@lru_cache
+def reference(version="forms-v1"):
+    return {q.key: q for q in reference_definition(version).questions}
 
 
 def analytical_question(key):
-    if key in MOBILITY_TITLES or (key == "university" and get_settings().data_mode == "demo"):
+    demo = get_settings().data_mode == "demo"
+    if (demo and (key in MOBILITY_TITLES or key == "university")) or key == "commute_difficulty":
         return reference(DEMO_VERSION)[key]
+    if not demo and key in REVISED_KEYS | set(REAL_MOBILITY_KEYS):
+        return reference(INTEGRATED_VERSION)[key]
     return reference()[key]
+
+
+class CompatibleQuestions(dict):
+    def __init__(self):
+        super().__init__((key, []) for key in TITLES)
+        self.value_maps = {}
+        self.cohort_version = None
 
 
 def compatible_questions(db):
     """No cross-version equivalence by key alone; explicit mapping AND signature."""
-    result = {key: [] for key in TITLES}
+    result = CompatibleQuestions()
     demo = get_settings().data_mode == "demo"
     for q, version, provenance in db.execute(select(Question, Questionnaire.version, Questionnaire.provenance).join(Questionnaire)):
         if q.key not in TITLES or (not demo and (version == DEMO_VERSION or provenance.get("data_mode") == "demo")):
             continue
         versions = []
-        if q.key in reference():
+        if not demo and q.key in REVISED_KEYS | set(REAL_MOBILITY_KEYS):
+            versions.append(INTEGRATED_VERSION)
+            definition = reference_definition(INTEGRATED_VERSION)
+            legacy = definition.provenance.get("legacy_compatibility", {}).get(q.key)
+            if legacy and version == legacy["source_version"]:
+                old = reference(legacy["source_version"])[q.key]
+                mapping = legacy["value_map"]
+                if (q.kind == old.kind and q.prompt == old.prompt and [o.value for o in q.options] == old.options
+                        and set(mapping) == set(old.options) and set(mapping.values()) <= set(reference(INTEGRATED_VERSION)[q.key].options)):
+                    result[q.key].append(q.id)
+                    result.value_maps[q.id] = mapping
+                    continue
+        elif q.key in reference():
             versions.append("forms-v1")
         if demo and (q.key in MOBILITY_TITLES or q.key == "university"):
             versions.append(DEMO_VERSION)
@@ -140,8 +174,14 @@ def atomic_counts(db, ids, keys=()):
     else:
         query = query.where(Questionnaire.version != DEMO_VERSION,
                             func.coalesce(Questionnaire.provenance["data_mode"].as_string(), "real") != "demo")
+    if getattr(ids, "cohort_version", None):
+        query = query.where(Questionnaire.version == ids.cohort_version)
     for key in dict.fromkeys((*FILTER_KEYS, *keys)):
-        values = select(Answer.response_id, Answer.value).where(Answer.question_id.in_(ids[key])).subquery()
+        mappings = getattr(ids, "value_maps", {})
+        changes = [(and_(Answer.question_id == qid, Answer.value == old), new)
+                   for qid in ids[key] for old, new in mappings.get(qid, {}).items() if old != new]
+        value = case(*changes, else_=Answer.value) if changes else Answer.value
+        values = select(Answer.response_id, value.label("value")).where(Answer.question_id.in_(ids[key])).subquery()
         query = query.join(values, values.c.response_id == SurveyResponse.id, isouter=key in FILTER_KEYS)
         columns[key] = values.c.value
         if key in keys and key in FILTER_KEYS:
@@ -253,6 +293,7 @@ def specification(key, title, required, kind="distribution"):
             "minimum_group_size": get_settings().min_group_size, "minimum_conditions": "Cobertura y celdas publicables; compatibilidad explícita del instrumento",
             "definition": " / ".join(analytical_question(key).prompt for key in required),
             "category_catalog": {k: analytical_question(k).options for k in required},
+            **({"introduced_in": INTEGRATED_VERSION} if not get_settings().data_mode == "demo" and any(k in REAL_MOBILITY_KEYS for k in required) else {}),
             "status": "insufficient", "denominator": None, "missing": None, "coverage_percentage": None,
             "pooled": False, "message": PROTECTED, "data": [], "rows": [], "columns": [], "filterable": False}
 
@@ -319,10 +360,11 @@ def comparison(ctx, x, y="dropout_thoughts"):
     paired = sum(ctx.frequencies(x, y).full.values())
     if paired != sum(ctx.frequencies(x).full.values()) or paired != sum(ctx.frequencies(y).full.values()):
         return {**result, "message": COVERAGE_PROTECTED}
-    original = protected_matrix(ctx, x, y, result, {})
+    forced = getattr(ctx, "cohort_rules", {})
+    original = protected_matrix(ctx, x, y, result, forced)
     if original is not None:
         return original
-    rules = {key: COARSENING[key] for key in (x, y) if key in COARSENING}
+    rules = {**{key: coarsening(key) for key in (x, y) if key in COARSENING}, **forced}
     if rules:
         return protected_matrix(ctx, x, y, result, rules) or result
     return result
@@ -350,7 +392,7 @@ def protected_matrix(ctx, x, y, result, rules, *, require_filterable=False):
         valid = sum(n for _, _, n in cells)
         # Identical compatible coverage makes the paired margins comparable to
         # the public distributions without isolating a missing subgroup.
-        return cells, valid, valid >= ctx.minimum and valid == x_count == y_count and not small(total - valid, ctx.minimum) and all(not small(n, ctx.minimum) for _, _, n in cells)
+        return cells, valid, (valid >= ctx.minimum or valid == total == 0) and valid == x_count == y_count and not small(total - valid, ctx.minimum) and all(not small(n, ctx.minimum) for _, _, n in cells)
 
     fx, fy = ctx.frequencies(x), ctx.frequencies(y)
     _, _, global_safe = safe(frequencies.full, ctx.global_total, sum(fx.full.values()), sum(fy.full.values()))
@@ -365,6 +407,8 @@ def protected_matrix(ctx, x, y, result, rules, *, require_filterable=False):
     cells, valid, valid_safe = safe(frequencies.selected, ctx.total, sum(fx.selected.values()), sum(fy.selected.values()))
     if not valid_safe:
         return result
+    if valid == 0:
+        return {**result, "status": "unavailable", "message": "Esta selección no contiene respuestas compatibles para el cruce."}
     original = {key: list(rules[key]) if key in rules else analytical_question(key).options for key in (x, y)}
     rows = [value for value in original[x] if any(a == value for a, _, _ in cells)]
     columns = [value for value in original[y] if not (require_filterable or y in rules) or any(b == value for _, b, _ in cells)]
@@ -389,11 +433,94 @@ def mobility_flow(ctx):
         return {**result, "status": "unavailable", "message": "Falta una variable compatible de movilidad."}
     # The flow and its margins are a single release. Use the same plan even
     # unfiltered, and require every flow to be safe in every public filter atom.
-    for rules in ({}, FLOW_GROUPS):
+    for rules in (({}, FLOW_GROUPS) if get_settings().data_mode == "demo" else ({},)):
         chart = protected_matrix(ctx, x, y, result, rules, require_filterable=True)
         if chart is not None:
             return chart
     return result
+
+
+def coarsening(key):
+    if key == "commute_time" and get_settings().data_mode != "demo":
+        options = analytical_question(key).options
+        return {"Hasta 30 minutos": options[:2], "Más de 30 minutos": options[2:]}
+    return COARSENING[key]
+
+
+def cohort_context(parent, shared=()):
+    """A v2 matrix may not reveal a small legacy remainder by subtraction.
+
+    Reuse the global filter partition, require safe cohort/complement counts in
+    every atom, and protect every shared margin against the all-version release.
+    """
+    scoped = copy(parent)
+    scoped.ids = copy(parent.ids)
+    scoped.ids.cohort_version = INTEGRATED_VERSION
+    scoped._frequencies = {}
+    atoms = atomic_counts(parent.db, scoped.ids)
+    scoped.global_total = sum(n for _, _, n in atoms)
+    scoped.total = sum(n for u, s, n in atoms if parent.matches(u, s))
+    scoped.partition_totals = Counter({cell: 0 for cell in parent.partition_totals})
+    for u, s, n in atoms:
+        scoped.partition_totals[parent.partition(u, s)] += n
+    if not scoped.global_total:
+        return None
+    for cell, total in parent.partition_totals.items():
+        new = scoped.partition_totals[cell]
+        if small(new, parent.minimum) or small(total - new, parent.minimum):
+            return None
+    scoped.cohort_rules = {}
+    for key in shared:
+        whole, part = parent.frequencies(key), scoped.frequencies(key)
+
+        def safe_margin(rules):
+            mapping = {value: label for label, values in rules.items() for value in values}
+            public, _ = safe_categories(whole.full.items(), parent.minimum)
+            visible = {label for label, _ in public if label != POOL}
+            if len({mapping.get(label, label) for label in whole.full if label not in visible}) > 1 and mapping:
+                return False
+            for cell in parent.partition_totals:
+                all_counts, new_counts = Counter(), Counter()
+                for label, n in whole.partitions[cell].items():
+                    all_counts[mapping.get(label, label)] += n
+                for label, n in part.partitions[cell].items():
+                    new_counts[mapping.get(label, label)] += n
+                if any(small(n - new_counts[label], parent.minimum) or small(new_counts[label], parent.minimum)
+                       for label, n in all_counts.items()):
+                    return False
+            return True
+
+        if not safe_margin({}):
+            groups = COARSENING.get(key)
+            if groups is None or not safe_margin(groups):
+                return None
+            scoped.cohort_rules[key] = groups
+    return scoped
+
+
+def integrated_mobility(ctx):
+    charts = [distribution(ctx, key) for key in REAL_MOBILITY_KEYS]
+    specs = [("mobility_delay", "dropout_thoughts"), ("relocated_for_study", "main_difficulty")]
+    comparisons = []
+    for x, y in specs:
+        scoped = cohort_context(ctx, (y,))
+        chart = (comparison(scoped, x, y) if scoped is not None else
+                 specification(f"{x}__{y}", f"{TITLES[x]} y {TITLES[y].lower()}", [x, y], "matrix"))
+        comparisons.append(chart)
+    scoped = cohort_context(ctx)
+    flow = (mobility_flow(scoped) if scoped is not None else
+            specification("transport_mode__commute_time", "Medio de transporte y tiempo de desplazamiento",
+                          ["transport_mode", "commute_time"], "matrix"))
+    # Denominators describe the v2 matrix. Coverage always refers to the entire
+    # selected cohort, including historical records that did not have mobility.
+    for chart in [flow, *comparisons]:
+        if chart["status"] == "ready":
+            chart["missing"] = ctx.total - chart["denominator"]
+            chart["coverage_percentage"] = round(chart["denominator"] * 100 / ctx.total, 1)
+    available = any(ctx.ids[key] for key in REAL_MOBILITY_KEYS)
+    return {"status": "ready" if available else "unavailable", "charts": charts if available else [],
+            **({"flow": flow} if available else {}), "comparisons": comparisons if available else [],
+            "message": "Preguntas incorporadas desde savra-integrada-v2. Los cruces son descriptivos; no indican causalidad. El histórico carece de estas variables."}
 
 
 def dropout_composition(ctx, chart):
@@ -480,6 +607,8 @@ def overview(db: Session, university=None, semester=None):
     ctx = Context(db, university, semester)
     base = ctx.base()
     base["charts"] = [distribution(ctx, key) for key in CHARTS]
+    if ctx.ids["career_area"] and get_settings().data_mode != "demo":
+        base["charts"].append(distribution(ctx, "career_area"))
     if base["status"] == "ready":
         base["composition"] = dropout_composition(ctx, base["charts"][0])
     return base
@@ -490,7 +619,8 @@ def module_data(db: Session, module, university=None, semester=None):
     base = {**ctx.base(), "module": module, "indicators": [], "quality": [], "versions": [], "institutions": None}
     # Version metadata has no respondent counts and is safe even for an empty DB.
     demo = base["data_mode"] == "demo"
-    base["versions"] = [{"version": q.version, "active": q.active, "options_complete": bool(q.provenance.get("option_set_complete"))}
+    base["versions"] = [{"version": q.version, "active": q.active, "options_complete": bool(q.provenance.get("option_set_complete")),
+                         "options_basis": q.provenance.get("options_basis")}
                         for q in db.scalars(select(Questionnaire).order_by(Questionnaire.id))
                         if demo or (q.version != DEMO_VERSION and q.provenance.get("data_mode") != "demo")]
     if module == "academic":
@@ -505,6 +635,8 @@ def module_data(db: Session, module, university=None, semester=None):
                                     "El total recibido se reserva a la CLI: los lotes pueden solaparse y los descartes o la diferencia entre orígenes pueden formar grupos menores de cinco.")
     if module == "academic":
         base["charts"] = [comparison(ctx, key) for key in PAIRS]
+        if not demo:
+            base["mobility"] = integrated_mobility(ctx)
         if demo and base["status"] == "ready":
             charts = [distribution(ctx, key) for key in MOBILITY_TITLES]
             if any(chart["status"] != "unavailable" for chart in charts):
@@ -514,6 +646,8 @@ def module_data(db: Session, module, university=None, semester=None):
     elif module == "permanence":
         keys = ["motivation", "economic_difficulty", "academic_load", "institutional_support", "dropout_thoughts",
                 "enrollment_likelihood", "absence_frequency", "failed_courses", "work_hours"]
+        if not demo and ctx.ids["career_area"]:
+            keys.append("gpa_range")
         base["charts"] = [distribution(ctx, key) for key in keys]
         if base["status"] == "ready":
             base["indicators"] = [derived_indicator(ctx, key) for key in RULES]
@@ -526,13 +660,18 @@ def module_data(db: Session, module, university=None, semester=None):
                                 "message": "Comparación descriptiva sin rankings. Las bases corresponden a respuestas conjuntas válidas por universidad."}
     elif module in {"quality", "methodology"}:
         if module == "quality" and base["status"] == "ready":
-            for key in TITLES if demo else (key for key in TITLES if key not in MOBILITY_TITLES):
+            keys = ([key for key in TITLES if key not in EXTENDED_TITLES] if demo else
+                    [key for key in TITLES if key not in MOBILITY_TITLES and key not in EXTENDED_TITLES])
+            if not demo and ctx.ids["career_area"]:
+                keys += ["career_area", *REAL_MOBILITY_KEYS]
+            for key in keys:
                 base["quality"].append(coverage(ctx, key))
     return base
 
 
 def coverage(ctx, key):
     result = {"key": key, "title": TITLES[key], "kind": "ordinal" if key in ORDINAL else "categorical",
+              **({"introduced_in": INTEGRATED_VERSION} if key in REAL_MOBILITY_KEYS and get_settings().data_mode != "demo" else {}),
               "status": "insufficient", "valid": None, "missing": None, "coverage_percentage": None, "message": PROTECTED}
     if not ctx.ids[key]:
         return {**result, "status": "unavailable", "message": "Variable ausente o sin compatibilidad explícita."}

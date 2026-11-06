@@ -6,7 +6,7 @@ if (!/^[a-f0-9]{24}$/.test(process.env.SAVRA_PRODUCTION_TEST ?? '')) {
 export default defineConfig({
   testDir: './production-e2e', workers: 1, fullyParallel: false, timeout: 60000,
   use: {
-    ...devices['Desktop Chrome'], baseURL: 'https://savra.test:8443', ignoreHTTPSErrors: true,
+    ...devices['Desktop Chrome'], baseURL: 'https://savra.test:8443', ignoreHTTPSErrors: true, reducedMotion: 'reduce',
     launchOptions: { args: ['--host-resolver-rules=MAP savra.test 127.0.0.1'] },
   },
   reporter: 'list',

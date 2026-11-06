@@ -12,8 +12,41 @@ from test_isolated import ROOT, docker, run_container, tls_certificate, wait_unt
 IMAGE = "savra-render:preparacion"
 
 
+def seed_analytics_fixture(container):
+    if not container.startswith("savra-render-qa-") or not container.endswith("-app"):
+        raise RuntimeError("La fixture solo puede ejecutarse en el contenedor desechable")
+    code = '''from pathlib import Path
+import hashlib
+from sqlalchemy import delete,text
+from app.database import SessionLocal
+from app.models import Answer,SurveyResponse
+from app.questionnaires import active_questionnaire,load_definition,register_questionnaire,payload_hash,validate_answers
+with SessionLocal.begin() as db:
+    assert db.bind.url.host=='db' and db.scalar(text('SELECT current_database()'))=='savra_test'
+    assert db.scalar(text('SELECT count(*) FROM responses'))==1
+    current=active_questionnaire(db)
+    assert current.version=='savra-integrada-v2'
+    db.execute(delete(Answer)); db.execute(delete(SurveyResponse))
+    old=register_questionnaire(db,load_definition(Path('configuration/forms-v1.json')),activate=False)
+    for instrument in (old,current):
+        questions={q.key:q for q in instrument.questions}
+        for i in range(20):
+            values={q.key:(q.eligible_values or [o.value for o in q.options])[0] for q in instrument.questions if q.kind=='category'}
+            values['university']=questions['university'].options[i%2].value
+            if instrument.id==current.id:
+                values.update(relocated_for_study='Sí' if i%2==0 else 'No',transport_mode='Caminando' if i%2==0 else 'Transporte público: bus, buseta o colectivo',commute_time='Hasta 15 minutos' if i%2==0 else 'De 31 a 60 minutos')
+            values=validate_answers(instrument,values)
+            row=SurveyResponse(questionnaire_id=instrument.id,source='integrated',fingerprint=hashlib.sha256(f'isolated-analytics-{instrument.id}-{i}'.encode()).hexdigest(),payload_hash=payload_hash(values))
+            db.add(row); db.flush()
+            db.add_all(Answer(response_id=row.id,question_id=questions[key].id,value=value) for key,value in values.items())
+print('Fixture analítica exclusiva de savra_test preparada; ninguna conexión a datos reales.')
+'''
+    docker("exec", "-i", container, "python", "-", input=code.encode("utf-8"), capture_output=True)
+
+
 def main():
     (ROOT / ".local/release-audit").mkdir(parents=True, exist_ok=True)
+    (ROOT / ".local/areas-v2-audit").mkdir(parents=True, exist_ok=True)
     token = secrets.token_hex(12)
     prefix = "savra-render-qa-" + token
     env = {**os.environ, "POSTGRES_DB": "savra_test", "POSTGRES_USER": "savra",
@@ -71,12 +104,12 @@ print('TLS PostgreSQL y contenido mínimo de la imagen: correctos')
 """
         docker("exec", app, "python", "-c", probe)
         env.update(SAVRA_PRODUCTION_TEST=token, SAVRA_E2E_TLS=str(directory))
-        subprocess.run(["node", "node_modules/@playwright/test/cli.js", "test", "--config=playwright.production.config.ts"],
+        subprocess.run(["node", "node_modules/@playwright/test/cli.js", "test", "production.spec.ts", "--config=playwright.production.config.ts"],
                        cwd=ROOT / "frontend", env=env, check=True)
 
         usage = json.loads(docker("stats", "--no-stream", "--format", "{{json .}}", app,
                                   capture_output=True, text=True).stdout)["MemUsage"]
-        manifest_args = ("python", "tools/database_manifest.py", "--expect-responses", "1", "--expect-answers", "18", "--json")
+        manifest_args = ("python", "tools/database_manifest.py", "--expect-responses", "1", "--expect-answers", "27", "--json")
         before = json.loads(docker("exec", app, *manifest_args, capture_output=True, text=True).stdout)
         docker("restart", app, capture_output=True)
         wait_until(healthy, "reinicio idempotente")
@@ -93,6 +126,9 @@ print('TLS PostgreSQL y contenido mínimo de la imagen: correctos')
         restored = json.loads(docker("exec", "-e", "DATABASE_URL", app, *manifest_args,
                                      env=restored_env, capture_output=True, text=True).stdout)
         assert before == restored, "El dump/restore aislado no conserva el manifiesto"
+        seed_analytics_fixture(app)
+        subprocess.run(["node", "node_modules/@playwright/test/cli.js", "test", "analytics.spec.ts", "--config=playwright.production.config.ts"],
+                       cwd=ROOT / "frontend", env=env, check=True)
         stats = json.loads(docker("stats", "--no-stream", "--format", "{{json .}}", app,
                                   capture_output=True, text=True).stdout)
         state = json.loads(docker("inspect", "--format", "{{json .State}}", app, capture_output=True, text=True).stdout)

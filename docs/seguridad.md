@@ -2,7 +2,7 @@
 
 El repositorio preparado contiene código, definiciones del cuestionario sin respuestas, dos PNG de marca revisados, archivos de dependencias, configuración de ejemplo, documentación pública y pruebas con fixtures creadas por código. Los commits se escriben en español.
 
-`.gitignore` excluye entornos y secretos, `.local`, Excel, CSV, bases y respaldos, certificados y claves, dependencias, temporales, capturas e informes históricos locales y el directorio personal de identidad visual. Solo se permiten expresamente cuatro documentos públicos en `docs`. Los informes previos y capturas se conservan en disco; la rama de publicación no los contiene.
+`.gitignore` excluye entornos y secretos, `.local`, Excel, CSV, bases y respaldos, certificados y claves, dependencias, temporales, capturas e informes históricos locales y el directorio personal de identidad visual. Solo se permiten expresamente cinco documentos públicos en `docs`. Los informes previos y capturas se conservan en disco; la rama de publicación no los contiene.
 
 El Dockerfile raíz usa un contexto con lista de permitidos en `.dockerignore`, además de copias explícitas. No envía `.env`, originales, respaldos, informes ni dependencias instaladas al constructor. La imagen final tampoco contiene el generador demo, su definición, el importador Excel, fixtures o pruebas. Los Dockerfiles de desarrollo continúan separados para Compose.
 

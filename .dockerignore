@@ -8,6 +8,7 @@
 !backend/app/**
 !backend/configuration/
 !backend/configuration/forms-v1.json
+!backend/configuration/savra-integrada-v2.json
 !backend/migrations/
 !backend/migrations/**
 !frontend/

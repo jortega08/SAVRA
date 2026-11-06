@@ -1,5 +1,7 @@
 # Preparación y validación · 6 de noviembre de 2026
 
+Este informe conserva los resultados de la preparación inicial. El commit ecdb041 se publicó posteriormente con autorización. La [actualización de encuesta v2](encuesta-v2.md) contiene el estado vigente del formulario y su validación; sus cambios quedan locales hasta nueva autorización.
+
 SAVRA queda preparado para el primer push y para un servicio Docker en Render con PostgreSQL externo. No se ha ejecutado push, creado un servicio Render ni conectado o migrado la base a Neon. El remoto configurado es la URL entregada por el titular; no se ha comprobado la visibilidad mediante una sesión remota.
 
 ## Resultados

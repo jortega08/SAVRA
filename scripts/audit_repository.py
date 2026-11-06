@@ -7,7 +7,7 @@ import sys
 from urllib.parse import quote
 
 ROOT = Path(__file__).resolve().parents[1]
-PUBLIC_DOCS = {"docs/despliegue-render.md", "docs/migracion-neon.md", "docs/seguridad.md", "docs/preparacion-validacion.md"}
+PUBLIC_DOCS = {"docs/despliegue-render.md", "docs/migracion-neon.md", "docs/seguridad.md", "docs/preparacion-validacion.md", "docs/encuesta-v2.md"}
 BRANDING = {"frontend/public/branding/logo_savra.png", "frontend/public/branding/isotipo_savra.png"}
 TEXT_EXTENSIONS = {".py", ".ts", ".tsx", ".js", ".mjs", ".css", ".html", ".json", ".md", ".txt", ".yaml", ".yml", ".toml", ".ini", ".conf", ".sh", ".ps1", ".mako"}
 SPECIAL_FILES = {".gitignore", ".dockerignore", ".gitattributes", ".env.example", ".env.production.example", ".gitkeep", "Dockerfile"}

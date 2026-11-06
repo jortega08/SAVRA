@@ -8,6 +8,7 @@ from .config import get_settings
 from .models import Option, Question, Questionnaire
 
 DEMO_VERSION = "demo-movilidad-v1"
+INTEGRATED_VERSION = "savra-integrada-v2"
 DEMO_NOTICE = "DATOS SIMULADOS — DEMOSTRACIÓN TÉCNICA"
 
 
@@ -58,6 +59,13 @@ class Definition(BaseModel):
             question = next((q for q in self.questions if q.key == key), None)
             if not question or not question.required or not question.eligible_values or len(question.eligible_values) != 1:
                 raise ValueError(f"{key}: se requiere exactamente un valor de aceptación")
+        questions = {q.key: q for q in self.questions}
+        for key, rule in self.provenance.get("conditional_text", {}).items():
+            target, parent = questions.get(key), questions.get(rule.get("question"))
+            if (not target or target.kind != "text" or target.required or not parent
+                    or parent.kind != "category" or rule.get("value") not in parent.options
+                    or not 1 <= rule.get("max_length", 0) <= 500):
+                raise ValueError("Regla de texto condicional inválida")
         return self
 
 
@@ -66,6 +74,8 @@ def load_definition(path: str | Path) -> Definition:
 
 
 def register_questionnaire(db: Session, definition: Definition, activate=True):
+    if db.get_bind().dialect.name == "postgresql":
+        db.execute(text("SELECT pg_advisory_xact_lock(724193602)"))
     if definition.version == DEMO_VERSION or definition.provenance.get("data_mode") == "demo":
         require_demo_database(db)
     digest = hashlib.sha256(definition.model_dump_json().encode()).hexdigest()
@@ -97,11 +107,18 @@ def active_questionnaire(db: Session):
 
 
 def public_questionnaire(q: Questionnaire):
+    examples = q.provenance.get("option_examples", {})
+    conditional = q.provenance.get("conditional_text", {})
     return {"version": q.version, "title": q.title,
             "options_basis": q.provenance.get("options_basis"),
+            **({"estimated_minutes": q.provenance["estimated_minutes"]} if "estimated_minutes" in q.provenance else {}),
             "questions": [{"key": item.key, "prompt": item.prompt, "kind": item.kind,
                            "section": item.section, "required": item.required,
-                           "options": [{"value": o.value, "label": o.label} for o in item.options]}
+                           **({"required_when": {"question": conditional[item.key]["question"], "value": conditional[item.key]["value"]},
+                               "max_length": conditional[item.key]["max_length"]} if item.key in conditional else {}),
+                           "options": [{"value": o.value, "label": o.label,
+                                        **({"example": examples[item.key][o.value]}
+                                           if o.value in examples.get(item.key, {}) else {})} for o in item.options]}
                           for item in q.questions]}
 
 
@@ -114,17 +131,29 @@ def validate_answers(questionnaire: Questionnaire, answers: dict[str, str], *, c
         result["consent"] = questions["consent"].eligible_values[0]
     for key, question in questions.items():
         value = result.get(key)
+        conditional = questionnaire.provenance.get("conditional_text", {}).get(key)
+        required = question.required
+        if conditional:
+            required = result.get(conditional["question"]) == conditional["value"]
+            if not required:
+                if isinstance(value, str) and value.strip():
+                    raise ValueError(f"El texto no corresponde a la opción seleccionada: {key}")
+                result.pop(key, None)
+                continue
         if value is None or not isinstance(value, str) or not value.strip():
-            if question.required:
+            if required:
                 raise ValueError(f"Falta la pregunta obligatoria: {key}")
             result.pop(key, None)
             continue
-        if len(value) > (2000 if question.kind == "text" else 500):
+        limit = conditional["max_length"] if conditional else (2000 if question.kind == "text" else 500)
+        if len(value) > limit:
             raise ValueError(f"Respuesta demasiado larga: {key}")
         if question.kind == "category" and value not in {o.value for o in question.options}:
             raise ValueError(f"Opción no reconocida: {key}")
         if question.eligible_values and value not in question.eligible_values:
             raise ValueError(f"No cumple el criterio: {key}")
+        if conditional:
+            result[key] = value.strip()
     return result
 
 

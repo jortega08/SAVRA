@@ -1,0 +1,514 @@
+{
+  "version": "savra-integrada-v2",
+  "title": "Factores asociados con la intención de abandono universitario",
+  "source_namespace": "savra-integrated-v2",
+  "provenance": {
+    "origin": "SAVRA · encuesta integrada",
+    "base_version": "forms-v1",
+    "options_basis": "integrated_reviewed_v2",
+    "option_set_complete": false,
+    "question_wording": "Se conserva la redacción de forms-v1 en las 18 preguntas.",
+    "required_basis": "Se conservan los requisitos de forms-v1: preguntas cerradas obligatorias, texto final opcional.",
+    "notes": "Se completan explícitamente promedio, asignaturas reprobadas, dificultad principal y áreas; se añaden seis preguntas y tres seguimientos condicionales. Los demás catálogos heredados siguen basados en opciones observadas y no se consideran exhaustivos. Se conserva la elegibilidad y no se imputan variables nuevas al histórico. Se añade Primero al semestre para admitir estudiantes sin semestre finalizado sin obligarlos a declararse en segundo o tercero.",
+    "analytics_compatibility": {
+      "consent": "forms-v1:consent",
+      "eligibility": "forms-v1:eligibility",
+      "university": "forms-v1:university",
+      "age_range": "forms-v1:age_range",
+      "work_hours": "forms-v1:work_hours",
+      "absence_frequency": "forms-v1:absence_frequency",
+      "economic_difficulty": "forms-v1:economic_difficulty",
+      "academic_load": "forms-v1:academic_load",
+      "institutional_support": "forms-v1:institutional_support",
+      "motivation": "forms-v1:motivation",
+      "dropout_thoughts": "forms-v1:dropout_thoughts",
+      "enrollment_likelihood": "forms-v1:enrollment_likelihood",
+      "open_comment": "forms-v1:open_comment"
+    },
+    "category_compatibility": {
+      "career_area": {
+        "status": "not_equivalent",
+        "base_version": "forms-v1",
+        "mapping": {},
+        "reason": "Las categorías históricas agrupan campos que la nueva versión separa o amplía. No se recodifican respuestas individuales ni se presume equivalencia por semejanza de etiquetas."
+      }
+    },
+    "option_examples": {
+      "career_area": {
+        "Educación": "Pedagogía, licenciaturas y educación infantil.",
+        "Artes y humanidades": "Artes, música, historia y filosofía.",
+        "Ciencias sociales y comunicación": "Sociología, psicología y comunicación social.",
+        "Administración, negocios y derecho": "Administración, contaduría, negocios y derecho.",
+        "Ciencias naturales, matemáticas y estadística": "Biología, química, física, matemáticas y estadística.",
+        "Tecnologías de la información y comunicación": "Informática, desarrollo de software y redes.",
+        "Ingeniería, industria y construcción": "Ingeniería civil, industrial, mecánica y arquitectura.",
+        "Agricultura, ciencias agropecuarias y veterinaria": "Agronomía, zootecnia y Medicina Veterinaria.",
+        "Salud y bienestar": "Medicina, enfermería, odontología y fisioterapia.",
+        "Servicios, turismo y áreas afines": "Turismo, hotelería, gastronomía y servicios.",
+        "Otra área / No encuentro mi carrera": "Para carreras que no encuentres en las áreas anteriores.",
+        "No estoy seguro(a)": "Si no sabes cuál área elegir."
+      }
+    },
+    "legacy_compatibility": {
+      "gpa_range": {
+        "source_version": "forms-v1",
+        "value_map": {
+          "De 3,0 a 3,4": "3,0 a 3,4",
+          "De 3,5 a 3,9": "3,5 a 3,9",
+          "De 4,0 a 4,4": "4,0 a 4,4"
+        },
+        "reason": "Mismos intervalos declarados; solo se elimina el prefijo De. No se asignan números exactos."
+      },
+      "failed_courses": {
+        "source_version": "forms-v1",
+        "value_map": {
+          "Ninguna": "Ninguna",
+          "Una": "Una",
+          "Dos": "Dos"
+        },
+        "reason": "Equivalencia literal de las tres categorías históricas; las nuevas opciones no se imputan."
+      },
+      "main_difficulty": {
+        "source_version": "forms-v1",
+        "value_map": {
+          "Bajo rendimiento académico": "Bajo rendimiento académico",
+          "Dificultades económicas": "Dificultades económicas",
+          "Dificultades familiares o personales": "Dificultades familiares o personales",
+          "Exceso de carga académica": "Exceso de carga académica",
+          "Falta de motivación con la carrera": "Falta de motivación con la carrera",
+          "Falta de tiempo por trabajo": "Falta de tiempo por trabajo",
+          "No identifico dificultades importantes": "No identifico dificultades importantes",
+          "Otro": "Otro"
+        },
+        "reason": "Misma pregunta y mismas categorías históricas. Transporte es una opción nueva; el texto condicional no se imputa al histórico."
+      },
+      "semester": {
+        "source_version": "forms-v1",
+        "value_map": {
+          "Segundo o tercero": "Segundo o tercero",
+          "Cuarto o quinto": "Cuarto o quinto",
+          "Sexto o séptimo": "Sexto o séptimo",
+          "Octavo o superior": "Octavo o superior"
+        },
+        "reason": "Se añade Primero para quienes aún no han finalizado un semestre; los grupos históricos conservan idénticas etiquetas y significado."
+      }
+    },
+    "conditional_text": {
+      "main_difficulty_other": {
+        "question": "main_difficulty",
+        "value": "Otro",
+        "max_length": 300
+      },
+      "transport_mode_other": {
+        "question": "transport_mode",
+        "value": "Otro, especificar",
+        "max_length": 300
+      },
+      "preferred_support_other": {
+        "question": "preferred_support",
+        "value": "Otro, especificar",
+        "max_length": 300
+      }
+    },
+    "primary_question_count": 24,
+    "estimated_minutes": [
+      6,
+      8
+    ]
+  },
+  "questions": [
+    {
+      "key": "consent",
+      "prompt": "¿Aceptas participar voluntariamente en esta encuesta?",
+      "source_column": "¿Aceptas participar voluntariamente en esta encuesta?",
+      "kind": "category",
+      "section": "Elegibilidad",
+      "required": true,
+      "options": [
+        "No acepto",
+        "Sí, acepto"
+      ],
+      "eligible_values": [
+        "Sí, acepto"
+      ]
+    },
+    {
+      "key": "eligibility",
+      "prompt": "¿Actualmente estás matriculado en una carrera universitaria en Colombia?",
+      "source_column": "¿Actualmente estás matriculado en una carrera universitaria en Colombia?",
+      "kind": "category",
+      "section": "Elegibilidad",
+      "required": true,
+      "options": [
+        "No",
+        "Sí"
+      ],
+      "eligible_values": [
+        "Sí"
+      ]
+    },
+    {
+      "key": "university",
+      "prompt": "¿En cuál de estas universidades estudias actualmente?",
+      "source_column": "¿En cuál de estas universidades estudias actualmente?",
+      "kind": "category",
+      "section": "Perfil académico",
+      "required": true,
+      "options": [
+        "Corporación Universitaria del Meta (UNIMETA)",
+        "Universidad Cooperativa de Colombia (UCC)",
+        "Universidad Santo Tomás",
+        "Universidad de los Llanos (Unillanos)"
+      ]
+    },
+    {
+      "key": "age_range",
+      "prompt": "¿Cuál es tu rango de edad?",
+      "source_column": "¿Cuál es tu rango de edad?",
+      "kind": "category",
+      "section": "Perfil académico",
+      "required": true,
+      "options": [
+        "18 a 20 años",
+        "21 a 23 años",
+        "24 a 26 años",
+        "27 a 30 años"
+      ]
+    },
+    {
+      "key": "semester",
+      "prompt": "¿En qué semestre te encuentras actualmente?",
+      "source_column": "¿En qué semestre te encuentras actualmente?",
+      "kind": "category",
+      "section": "Perfil académico",
+      "required": true,
+      "options": [
+        "Primero",
+        "Segundo o tercero",
+        "Cuarto o quinto",
+        "Sexto o séptimo",
+        "Octavo o superior"
+      ]
+    },
+    {
+      "key": "career_area",
+      "prompt": "¿A qué área pertenece tu carrera?",
+      "source_column": "¿A qué área pertenece tu carrera?",
+      "kind": "category",
+      "section": "Perfil académico",
+      "required": true,
+      "options": [
+        "Educación",
+        "Artes y humanidades",
+        "Ciencias sociales y comunicación",
+        "Administración, negocios y derecho",
+        "Ciencias naturales, matemáticas y estadística",
+        "Tecnologías de la información y comunicación",
+        "Ingeniería, industria y construcción",
+        "Agricultura, ciencias agropecuarias y veterinaria",
+        "Salud y bienestar",
+        "Servicios, turismo y áreas afines",
+        "Otra área / No encuentro mi carrera",
+        "No estoy seguro(a)"
+      ]
+    },
+    {
+      "key": "relocated_for_study",
+      "prompt": "¿Te mudaste de tu ciudad o municipio de origen para estudiar en la universidad?",
+      "source_column": "¿Te mudaste de tu ciudad o municipio de origen para estudiar en la universidad?",
+      "kind": "category",
+      "section": "Perfil académico",
+      "required": true,
+      "options": [
+        "Sí",
+        "No",
+        "Prefiero no responder"
+      ]
+    },
+    {
+      "key": "work_hours",
+      "prompt": "¿Cuántas horas semanales trabajas de forma remunerada?",
+      "source_column": "¿Cuántas horas semanales trabajas de forma remunerada?",
+      "kind": "category",
+      "section": "Experiencia académica",
+      "required": true,
+      "options": [
+        "No trabajo",
+        "De 1 a 20 horas",
+        "De 21 a 40 horas",
+        "Más de 40 horas"
+      ]
+    },
+    {
+      "key": "gpa_range",
+      "prompt": "¿En qué rango aproximadamente estuvo tu promedio académico del último semestre finalizado? (Escala de 0,0 a 5,0)",
+      "source_column": "¿En qué rango aproximadamente estuvo tu promedio académico del último semestre finalizado? (Escala de 0,0 a 5,0)",
+      "kind": "category",
+      "section": "Experiencia académica",
+      "required": true,
+      "options": [
+        "0,0 a 2,9",
+        "3,0 a 3,4",
+        "3,5 a 3,9",
+        "4,0 a 4,4",
+        "4,5 a 5,0",
+        "No aplica: aún no tengo promedio"
+      ]
+    },
+    {
+      "key": "failed_courses",
+      "prompt": "¿Cuántas asignaturas reprobaste en el último semestre finalizado?",
+      "source_column": "¿Cuántas asignaturas reprobaste en el último semestre finalizado?",
+      "kind": "category",
+      "section": "Experiencia académica",
+      "required": true,
+      "options": [
+        "Ninguna",
+        "Una",
+        "Dos",
+        "Tres o más",
+        "No aplica: aún no he finalizado un semestre"
+      ]
+    },
+    {
+      "key": "absence_frequency",
+      "prompt": "Durante el último mes de clases, ¿con qué frecuencia faltaste a clases?",
+      "source_column": "Durante el último mes de clases, ¿con qué frecuencia faltaste a clases?",
+      "kind": "category",
+      "section": "Experiencia académica",
+      "required": true,
+      "options": [
+        "Nunca",
+        "Una vez",
+        "Dos o tres veces",
+        "Cuatro o más veces"
+      ]
+    },
+    {
+      "key": "economic_difficulty",
+      "prompt": "¿Qué tanta dificultad económica tienes actualmente para continuar tus estudios?",
+      "source_column": "¿Qué tanta dificultad económica tienes actualmente para continuar tus estudios?",
+      "kind": "category",
+      "section": "Economía y movilidad",
+      "required": true,
+      "options": [
+        "1 - Ninguna dificultad",
+        "2 - Poca dificultad",
+        "3 - Dificultad moderada",
+        "4 - Bastante dificultad",
+        "5 - Mucha dificultad"
+      ]
+    },
+    {
+      "key": "transport_mode",
+      "prompt": "¿Cuál es tu medio principal de transporte hacia la universidad?",
+      "source_column": "¿Cuál es tu medio principal de transporte hacia la universidad?",
+      "kind": "category",
+      "section": "Economía y movilidad",
+      "required": true,
+      "options": [
+        "Caminando",
+        "Bicicleta",
+        "Motocicleta propia",
+        "Moto como pasajero",
+        "Automóvil propio",
+        "Automóvil familiar o compartido",
+        "Transporte público: bus, buseta o colectivo",
+        "Taxi",
+        "Transporte solicitado por aplicación",
+        "Transporte universitario",
+        "Otro, especificar"
+      ]
+    },
+    {
+      "key": "transport_mode_other",
+      "prompt": "Especifica brevemente el medio de transporte.",
+      "source_column": "Especifica brevemente el medio de transporte.",
+      "kind": "text",
+      "section": "Economía y movilidad",
+      "required": false,
+      "options": []
+    },
+    {
+      "key": "commute_time",
+      "prompt": "¿Cuánto tiempo tardas normalmente en llegar a la universidad?",
+      "source_column": "¿Cuánto tiempo tardas normalmente en llegar a la universidad?",
+      "kind": "category",
+      "section": "Economía y movilidad",
+      "required": true,
+      "options": [
+        "Hasta 15 minutos",
+        "De 16 a 30 minutos",
+        "De 31 a 60 minutos",
+        "Más de 60 minutos"
+      ]
+    },
+    {
+      "key": "weekly_transport_cost",
+      "prompt": "¿Cuánto gastas aproximadamente en transporte durante una semana habitual de clases?",
+      "source_column": "¿Cuánto gastas aproximadamente en transporte durante una semana habitual de clases?",
+      "kind": "category",
+      "section": "Economía y movilidad",
+      "required": true,
+      "options": [
+        "Sin costo",
+        "Hasta $20.000 COP",
+        "Más de $20.000 hasta $50.000 COP",
+        "Más de $50.000 COP",
+        "No lo sé"
+      ]
+    },
+    {
+      "key": "mobility_delay",
+      "prompt": "¿Con qué frecuencia el transporte ocasiona retrasos en tu llegada a clases?",
+      "source_column": "¿Con qué frecuencia el transporte ocasiona retrasos en tu llegada a clases?",
+      "kind": "category",
+      "section": "Economía y movilidad",
+      "required": true,
+      "options": [
+        "Nunca",
+        "Rara vez",
+        "Algunas veces",
+        "Frecuentemente",
+        "Muy frecuentemente"
+      ]
+    },
+    {
+      "key": "academic_load",
+      "prompt": "¿Qué tan difícil te resulta manejar tu carga académica y tus responsabilidades personales?",
+      "source_column": "¿Qué tan difícil te resulta manejar tu carga académica y tus responsabilidades personales?",
+      "kind": "category",
+      "section": "Permanencia, dificultades y preferencias",
+      "required": true,
+      "options": [
+        "1 - Nada difícil",
+        "2 - Poco difícil",
+        "3 - Moderadamente difícil",
+        "4 - Bastante difícil",
+        "5 - Muy difícil"
+      ]
+    },
+    {
+      "key": "institutional_support",
+      "prompt": "¿Consideras que cuentas con suficiente apoyo académico por parte de tu universidad?",
+      "source_column": "¿Consideras que cuentas con suficiente apoyo académico por parte de tu universidad?",
+      "kind": "category",
+      "section": "Permanencia, dificultades y preferencias",
+      "required": true,
+      "options": [
+        "1 - Ningún apoyo",
+        "2 - Poco apoyo",
+        "3 - Apoyo moderado",
+        "4 - Bastante apoyo",
+        "5 - Mucho apoyo"
+      ]
+    },
+    {
+      "key": "motivation",
+      "prompt": "¿Qué tan motivado te sientes actualmente para continuar tu carrera?",
+      "source_column": "¿Qué tan motivado te sientes actualmente para continuar tu carrera?",
+      "kind": "category",
+      "section": "Permanencia, dificultades y preferencias",
+      "required": true,
+      "options": [
+        "2 - Poco motivado",
+        "3 - Moderadamente motivado",
+        "4 - Bastante motivado",
+        "5 - Muy motivado"
+      ]
+    },
+    {
+      "key": "dropout_thoughts",
+      "prompt": "¿Con qué frecuencia has pensado en abandonar tu carrera durante el semestre actual?",
+      "source_column": "¿Con qué frecuencia has pensado en abandonar tu carrera durante el semestre actual?",
+      "kind": "category",
+      "section": "Permanencia, dificultades y preferencias",
+      "required": true,
+      "options": [
+        "Nunca",
+        "Rara vez",
+        "Algunas veces",
+        "Frecuentemente",
+        "Muy frecuentemente"
+      ]
+    },
+    {
+      "key": "enrollment_likelihood",
+      "prompt": "¿Qué tan probable consideras que te matricularás el próximo semestre?",
+      "source_column": "¿Qué tan probable consideras que te matricularás el próximo semestre?",
+      "kind": "category",
+      "section": "Permanencia, dificultades y preferencias",
+      "required": true,
+      "options": [
+        "Algo probable",
+        "Muy probable",
+        "No aplica (estoy próximo a graduarme)",
+        "No estoy seguro/a"
+      ]
+    },
+    {
+      "key": "main_difficulty",
+      "prompt": "¿Cuál consideras que es el principal factor que podría dificultar tu continuidad académica?",
+      "source_column": "¿Cuál consideras que es el principal factor que podría dificultar tu continuidad académica?",
+      "kind": "category",
+      "section": "Permanencia, dificultades y preferencias",
+      "required": true,
+      "options": [
+        "Bajo rendimiento académico",
+        "Dificultades económicas",
+        "Dificultades familiares o personales",
+        "Exceso de carga académica",
+        "Falta de motivación con la carrera",
+        "Falta de tiempo por trabajo",
+        "No identifico dificultades importantes",
+        "Dificultades de transporte",
+        "Otro"
+      ]
+    },
+    {
+      "key": "main_difficulty_other",
+      "prompt": "Describe brevemente la dificultad principal.",
+      "source_column": "Describe brevemente la dificultad principal.",
+      "kind": "text",
+      "section": "Permanencia, dificultades y preferencias",
+      "required": false,
+      "options": []
+    },
+    {
+      "key": "preferred_support",
+      "prompt": "¿Qué tipo de apoyo institucional te ayudaría más a continuar estudiando?",
+      "source_column": "¿Qué tipo de apoyo institucional te ayudaría más a continuar estudiando?",
+      "kind": "category",
+      "section": "Permanencia, dificultades y preferencias",
+      "required": true,
+      "options": [
+        "Apoyo económico",
+        "Tutorías académicas",
+        "Horarios más flexibles",
+        "Apoyo psicológico y bienestar",
+        "Apoyo de transporte",
+        "Orientación académica",
+        "Ninguno",
+        "Otro, especificar"
+      ]
+    },
+    {
+      "key": "preferred_support_other",
+      "prompt": "Especifica brevemente el apoyo institucional.",
+      "source_column": "Especifica brevemente el apoyo institucional.",
+      "kind": "text",
+      "section": "Permanencia, dificultades y preferencias",
+      "required": false,
+      "options": []
+    },
+    {
+      "key": "open_comment",
+      "prompt": "¿Qué apoyo o cambio te ayudaría más a continuar tus estudios?",
+      "source_column": "¿Qué apoyo o cambio te ayudaría más a continuar tus estudios?",
+      "kind": "text",
+      "section": "Permanencia, dificultades y preferencias",
+      "required": false,
+      "options": []
+    }
+  ]
+}

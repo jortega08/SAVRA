@@ -30,6 +30,7 @@ credentials/
 !/docs/migracion-neon.md
 !/docs/seguridad.md
 !/docs/preparacion-validacion.md
+!/docs/encuesta-v2.md
 *.xlsx
 *.xls
 *.xlsm

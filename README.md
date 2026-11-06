@@ -2,6 +2,8 @@
 
 Sistema de Análisis y Visualización del Riesgo Académico. Conserva la aplicación existente: encuesta con consentimiento, observatorio agregado y SAVRA Break (Reflex y 2048).
 
+La [encuesta savra-integrada-v2](docs/encuesta-v2.md) completa las categorías revisadas e incorpora movilidad, cambio de municipio y preferencias de apoyo. Tiene 24 preguntas principales en cinco pasos y tres textos breves condicionales. El histórico `forms-v1` conserva su definición y respuestas originales.
+
 ## Desarrollo local
 
 Con Docker Desktop iniciado, desde PowerShell:

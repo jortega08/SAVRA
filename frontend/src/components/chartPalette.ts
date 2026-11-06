@@ -31,6 +31,16 @@ const transport: Record<string, string> = {
   Motocicleta: chartColors.silver,
   Automóvil: chartColors.graphite,
   'Otros medios': chartColors.warmDark,
+  Caminando: chartColors.muted,
+  'Motocicleta propia': chartColors.silver,
+  'Moto como pasajero': chartColors.gray,
+  'Automóvil propio': chartColors.graphite,
+  'Automóvil familiar o compartido': chartColors.charcoal,
+  'Transporte público: bus, buseta o colectivo': chartColors.tomato,
+  Taxi: chartColors.salmon,
+  'Transporte solicitado por aplicación': chartColors.warmDark,
+  'Transporte universitario': chartColors.muted,
+  'Otro, especificar': chartColors.gray,
 }
 const scales: Record<string, 'difficulty' | 'support'> = {
   economic_difficulty: 'difficulty',

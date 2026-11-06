@@ -83,22 +83,23 @@ function ChartCollection({ module, data, demo, onInstitution }: { module: string
   </>
 }
 
-function Mobility({ mobility, choice, onChange }: { mobility?: AnalyticsData['mobility']; choice: string; onChange: (key: string) => void }) {
+function Mobility({ mobility, choice, onChange, demo }: { mobility?: AnalyticsData['mobility']; choice: string; onChange: (key: string) => void; demo: boolean }) {
   if (mobility?.status !== 'ready') {
     return <p className="section-state">{mobility?.message ?? 'Todavía no se han recopilado datos de movilidad en este entorno.'}</p>
   }
   const selected = mobility.comparisons.find(chart => chart.key === choice)
     ?? mobility.comparisons.find(chart => chart.filterable) ?? mobility.comparisons.find(chart => chart.status === 'ready') ?? mobility.comparisons[0]
   return <section className="mobility-section" aria-labelledby="mobility-title">
-    <header className="analysis-heading"><h2 id="mobility-title">Movilidad estudiantil</h2></header>
+    <header className="analysis-heading"><h2 id="mobility-title">Movilidad y apoyos</h2></header>
+    <p className="section-state">{mobility.message}</p>
     <div className="chart-grid">
-      {mobility.flow && <ChartPanel chart={mobility.flow} view="sankey" demo />}
-      {mobility.charts.map(chart => <ChartPanel key={chart.key} chart={chart} demo />)}
+      {mobility.flow && <ChartPanel chart={mobility.flow} view="sankey" demo={demo} />}
+      {mobility.charts.map(chart => <ChartPanel key={chart.key} chart={chart} view={scaleView(chart)} demo={demo} />)}
     </div>
     {selected && <section className="mobility-comparison">
-      <header className="analysis-heading"><h2>Movilidad y pensamientos de abandono</h2></header>
+      <header className="analysis-heading"><h2>Condiciones de movilidad y continuidad</h2></header>
       <div className="analysis-selector"><label htmlFor="mobility-comparison">Variable de movilidad para comparar</label><select id="mobility-comparison" value={selected.key} onChange={event => onChange(event.target.value)}>{mobility.comparisons.map(chart => <option key={chart.key} value={chart.key}>{chart.title}</option>)}</select></div>
-      <ChartPanel key={selected.key} chart={selected} view="heatmap" demo insight={mobility.message} />
+      <ChartPanel key={selected.key} chart={selected} view="heatmap" demo={demo} insight={mobility.message} />
     </section>}
   </section>
 }
@@ -165,7 +166,7 @@ export function AnalyticsModule({ module }: { module: string }) {
             <button type="button" aria-pressed={!mobilitySelected} onClick={() => setDimension('academic')}>Condiciones académicas</button>
             <button type="button" aria-pressed={mobilitySelected} onClick={() => setDimension('mobility')}>Movilidad estudiantil</button>
           </div>
-          {mobilitySelected ? <Mobility mobility={data.mobility} choice={mobilityComparison} onChange={setMobilityComparison} /> : data.charts.length > 0 && <ChartCollection module={module} data={data} demo={demo} onInstitution={selectInstitution} />}
+          {mobilitySelected ? <Mobility mobility={data.mobility} choice={mobilityComparison} onChange={setMobilityComparison} demo={demo} /> : data.charts.length > 0 && <ChartCollection module={module} data={data} demo={demo} onInstitution={selectInstitution} />}
         </>}
         {module === 'methodology' && <MethodologyContent demo={demo} filterNote={data.filter_note} minimumGroupSize={data.minimum_group_size} />}
         {module === 'quality' && <Quality data={data} />}
