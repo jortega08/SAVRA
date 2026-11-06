@@ -7,5 +7,5 @@ export function Brand({ compact = false }: { compact?: boolean }) {
 }
 export function PublicHeader() { return <header className="public-header"><Brand /><Link className="back-link" to="/"><ArrowLeft size={16} /><span>Volver al inicio</span></Link></header> }
 export function Loading({ text = 'Cargando información…' }: { text?: string }) { return <div className="state" role="status"><LoaderCircle className="animate-spin" size={25} /><p>{text}</p></div> }
-export function ErrorState({ message, retry }: { message: string; retry?: () => void }) { return <div className="state error-state" role="alert"><TriangleAlert size={26} /><h2>No pudimos cargar la información</h2><p>{message}</p>{retry && <Button variant="outline" onClick={retry}>Volver a intentar</Button>}</div> }
+export function ErrorState({ title = 'No pudimos cargar la información', message, retry }: { title?: string; message: string; retry?: () => void }) { return <div className="state error-state" role="alert"><TriangleAlert size={26} /><h2>{title}</h2><p>{message}</p>{retry && <Button variant="outline" onClick={retry}>Volver a intentar</Button>}</div> }
 export function EmptyState({ title, children }: { title: string; children: React.ReactNode }) { return <div className="state empty-state"><Info size={28} /><h2>{title}</h2><div>{children}</div></div> }

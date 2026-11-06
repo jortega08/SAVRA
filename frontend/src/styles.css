@@ -363,8 +363,6 @@ td { font-variant-numeric: tabular-nums; }
 }
 
 .module-content { position: relative; }
-.module-results[data-updating] { visibility: hidden; }
-.query-overlay { position: absolute; inset: 0 0 auto; }
 .chart-grid-overview { grid-template-columns: minmax(0, .9fr) minmax(0, 1.1fr); }
 .chart-grid-overview .chart-panel-main_difficulty { grid-column: auto; }
 .chart-grid-comparisons { grid-template-columns: minmax(0, 1fr); }

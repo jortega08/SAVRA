@@ -4,7 +4,7 @@ from sqlalchemy.exc import OperationalError
 from datetime import datetime, timedelta, timezone
 import hashlib
 from fastapi.testclient import TestClient
-from app.main import app, settings, COOKIE, COMPLETED_COOKIE, session_fingerprint
+from app.main import app, settings, COOKIE, COMPLETED_COOKIE, completion_expiry, session_fingerprint
 from app.models import Answer, SurveyResponse
 
 
@@ -46,6 +46,13 @@ def test_save_atomic_and_idempotent(client, questionnaire, answers, db):
     q = next(q for q in questionnaire.questions if q.key == "university")
     another["university"] = q.options[1].value
     assert client.post("/api/responses", json={**body, "answers": another}).status_code == 409
+
+
+def test_receipt_expiry_normalizes_postgresql_session_time_zone():
+    created = datetime(2026, 11, 6, 8, tzinfo=timezone(timedelta(hours=-5)))
+    expiry = completion_expiry(SurveyResponse(created_at=created))
+    assert expiry.tzinfo is timezone.utc
+    assert expiry == datetime(2026, 11, 6, 13, tzinfo=timezone.utc) + timedelta(days=180)
 
 
 def test_incomplete_ineligible_unknown_rejected(client, questionnaire, answers, db):

@@ -38,7 +38,7 @@ test('la tarjeta deja la tabla, el catálogo y el criterio de cálculo en la amp
 
 test.each(['insufficient', 'unavailable'] as const)('gráfico %s conserva explicación sin datos', status => {
   render(<ChartPanel chart={{ ...chart, status, data: [], denominator: null, message: 'Explicación del servidor' }} />)
-  expect(screen.queryByText('Explicación del servidor')).not.toBeInTheDocument()
+  expect(screen.getByText('Explicación del servidor')).toBeVisible()
   fireEvent.click(screen.getByRole('button', { name: /Ver detalle/ }))
   expect(within(screen.getByRole('dialog')).getByText('Explicación del servidor')).toBeVisible()
   expect(screen.queryByRole('table')).not.toBeInTheDocument()
@@ -115,6 +115,25 @@ test('las nuevas respuestas aparecen automáticamente cada minuto en una pestañ
     count = 25
     await act(async () => { await vi.advanceTimersByTimeAsync(60000) })
     expect(screen.getByText('25')).toBeVisible()
+    expect(fetch).toHaveBeenLastCalledWith('/api/analytics/academic?', expect.objectContaining({ cache: 'no-store' }))
     view?.unmount()
   } finally { vi.useRealTimers() }
+})
+
+test('la actualización distingue una caída de red y un error del servidor de los datos protegidos', async () => {
+  const fetchResults = vi.fn()
+    .mockResolvedValueOnce(Response.json({ ...base, charts: [{ ...chart, status: 'insufficient', data: [], message: 'Reserva de privacidad' }] }))
+    .mockRejectedValueOnce(new TypeError('offline'))
+    .mockResolvedValueOnce(Response.json({ detail: 'Servicio temporalmente no disponible' }, { status: 503 }))
+    .mockResolvedValueOnce(Response.json({ ...base, eligible_responses: 21 }))
+  vi.stubGlobal('fetch', fetchResults)
+  mount('academic')
+  expect(await screen.findByText('Datos protegidos')).toBeVisible()
+  fireEvent.click(screen.getByRole('button', { name: 'Actualizar resultados' }))
+  expect(await screen.findByRole('alert')).toHaveTextContent('Error de conexión')
+  expect(screen.queryByText('Datos protegidos')).not.toBeInTheDocument()
+  fireEvent.click(screen.getByRole('button', { name: 'Volver a intentar' }))
+  expect(await screen.findByRole('alert')).toHaveTextContent('Error de consulta')
+  fireEvent.click(screen.getByRole('button', { name: 'Volver a intentar' }))
+  expect(await screen.findByText('21')).toBeVisible()
 })

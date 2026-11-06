@@ -34,7 +34,7 @@ test('los seis módulos, gráficos y tablas funcionan en escritorio, tableta y m
           await page.keyboard.press('Escape')
           expect(chart.data.every((d: { count: number }) => d.count === 0 || d.count >= 5)).toBe(true)
         } else {
-          await expect(panel.locator('.chart-state')).toHaveText(/Frecuencias reservadas|Variable no disponible/)
+          await expect(panel.locator('.chart-state')).toHaveText(/Datos protegidos|Sin cobertura compatible|Aún faltan respuestas|Disponible sin filtros/)
           expect(chart.data).toEqual([])
         }
       }
@@ -133,7 +133,7 @@ test('errores, vacíos y variables ausentes conservan una pantalla utilizable', 
   await page.unroute('**/api/analytics/academic?*')
   await page.route('**/api/analytics/academic?*', route => route.fulfill({ json: { ...actual, charts: actual.charts.map((c: object) => ({ ...c, status: 'unavailable', data: [], denominator: null, message: 'No hay una variable compatible.' })) } }))
   await page.reload()
-  await expect(page.locator('.chart-state').filter({ hasText: 'Variable no disponible' })).toHaveCount(2)
+  await expect(page.locator('.chart-state').filter({ hasText: 'Sin cobertura compatible' })).toHaveCount(2)
   await expect(page.getByLabel('Condición para comparar con pensamientos de abandono')).toBeVisible()
 })
 

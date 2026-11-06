@@ -2,7 +2,7 @@ from pathlib import Path
 
 from sqlalchemy import select
 
-from app.analytics import Context, REAL_MOBILITY_KEYS, module_data
+from app.analytics import Context, REAL_MOBILITY_KEYS, cohort_context, module_data, protected_matrix
 from app.models import Answer, Question
 from app.questionnaires import load_definition, register_questionnaire, validate_answers
 from test_analytics import seed
@@ -63,6 +63,53 @@ def test_small_new_cohort_never_exposes_mobility_cells(db, questionnaire, answer
     for chart in [*mobility["charts"], mobility["flow"], *mobility["comparisons"]]:
         assert chart["status"] != "ready" and chart["data"] == []
         assert chart["denominator"] is None and chart["missing"] is None
+
+
+def test_no_v2_submissions_are_distinguished_from_protected_mobility(client, db, questionnaire, answers):
+    seed(db, questionnaire, answers, count=20)
+    q = new_instrument(db)
+    db.commit()
+    response = client.get("/api/analytics/academic")
+    mobility = response.json()["mobility"]
+    for chart in [*mobility["charts"], mobility["flow"], *mobility["comparisons"]]:
+        assert (chart["status"], chart["reason"], chart["denominator"], chart["data"]) == (
+            "unavailable", "no_responses", None, [])
+
+    start = client.post("/api/participation/start", json={"accepted": True, "questionnaire_version": q.version})
+    assert start.status_code == 200
+    payload = {"questionnaire_version": q.version, "answers": valid_answers(q)}
+    assert client.post("/api/responses", json=payload).json() == {"saved": True}
+    assert client.post("/api/responses", json=payload).json() == {"saved": True}
+    for path in ("/api/overview", "/api/analytics/academic", "/api/analytics/quality"):
+        latest = client.get(path)
+        assert latest.json()["eligible_responses"] == 21
+        assert latest.headers["cache-control"] == "no-store"
+    updated = client.get("/api/analytics/academic").json()["mobility"]
+    for chart in [*updated["charts"], updated["flow"], *updated["comparisons"]]:
+        assert (chart["status"], chart["reason"], chart["denominator"], chart["data"]) == (
+            "insufficient", "protected", None, [])
+
+
+def test_sankey_requires_safe_filter_atoms_even_with_safe_global_cells(db, questionnaire, answers):
+    q = new_instrument(db)
+    universities = next(item for item in q.questions if item.key == "university").options
+    for i in range(20):
+        group = i // 10
+        shared = {"university": universities[group].value, "semester": answers["semester"]}
+        insert(db, questionnaire, {**answers, **shared}, f"sankey-legacy-{i}")
+        mode = "Caminando" if i % 10 < 4 + 2 * group else "Bicicleta"
+        insert(db, q, validate_answers(q, {**valid_answers(q), **shared, "transport_mode": mode}), f"sankey-v2-{i}")
+    db.commit()
+    ctx = Context(db)
+    scoped = cohort_context(ctx)
+    assert scoped is not None and len(ctx.allowed["university"]) == 2
+    flow = module_data(db, "academic")["mobility"]["flow"]
+    relaxed = protected_matrix(scoped, "transport_mode", "commute_time", flow, {})
+    assert relaxed["status"] == "ready" and not relaxed["filterable"]
+    assert flow["status"] == "insufficient" and flow["data"] == []
+    for university in ctx.allowed["university"]:
+        filtered = module_data(db, "academic", university=university)["mobility"]["flow"]
+        assert filtered["status"] == "insufficient" and filtered["denominator"] is None
 
 
 def test_cross_version_subtraction_cannot_reveal_small_legacy_margin(db, questionnaire, answers):

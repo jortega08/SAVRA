@@ -51,7 +51,9 @@ function downloadSimulation(chart: ChartData) {
 }
 
 function unavailableTitle(chart: ChartData) {
-  return chart.status === 'unavailable' ? 'Variable no disponible' : 'Frecuencias reservadas'
+  if (chart.reason === 'no_responses') return chart.kind === 'matrix' ? 'Aún faltan respuestas para el cruce' : 'Aún no hay respuestas a esta pregunta'
+  if (chart.reason === 'unfiltered_only') return 'Disponible sin filtros'
+  return chart.status === 'unavailable' ? 'Sin cobertura compatible' : 'Datos protegidos'
 }
 
 function ExpandedChart({ chart, view, demo, insight, order, onClose }: {
@@ -120,7 +122,7 @@ export function ChartPanel({ chart, demo = false, view = chart.kind === 'matrix'
     {ready ? <>
       {chart.denominator != null && <p className="chart-base">{baseText(chart, demo, view, true)}</p>}
       <Suspense fallback={<Loading text="Preparando visualización…" />}><DistributionChart chart={shown} view={view} demo={demo} selectable={selectable} onInstitution={onInstitution} /></Suspense>
-    </> : <p className="chart-state">{unavailableTitle(chart)}</p>}
+    </> : <p className="chart-state"><strong>{unavailableTitle(chart)}</strong>{chart.message && <><br />{chart.message}</>}</p>}
     <div className="chart-actions">
       <button ref={expand} type="button" className="export-link" aria-haspopup="dialog" aria-label={`${action}: ${chart.title}`} onClick={() => setExpanded(true)}>
         <Maximize2 size={15} aria-hidden="true" /> {action}

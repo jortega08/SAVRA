@@ -136,8 +136,10 @@ def session_fingerprint(session):
 
 
 def completion_expiry(stored):
-    # SQLite fixtures return naive UTC; PostgreSQL returns timezone-aware values.
-    created = stored.created_at.replace(tzinfo=timezone.utc) if stored.created_at.tzinfo is None else stored.created_at
+    # SQLite fixtures return naive UTC. The HTTP Expires header needs UTC even
+    # when PostgreSQL returns the same instant in the session's time zone.
+    created = stored.created_at
+    created = created.replace(tzinfo=timezone.utc) if created.tzinfo is None else created.astimezone(timezone.utc)
     return created + COMPLETION_LIFETIME
 
 

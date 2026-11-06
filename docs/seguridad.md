@@ -13,3 +13,15 @@ La rama limpia `codex/preparacion-render` conserva el trabajo existente sin inco
 El sistema mantiene cookies seguras en HTTPS, validación exacta de Origin/Host, respuestas agregadas con supresión de grupos pequeños, ausencia de endpoints públicos de importación y microdatos, límites globales de API y cuerpos de escritura de 32 KiB. El servicio de producción no confía en cabeceras reenviadas para autorizar solicitudes ni conserva IPs para el límite. Los límites son por instancia y se reinician con el proceso; no constituyen una garantía de una persona por respuesta.
 
 El backup real y sus verificaciones quedan en carpetas privadas; nunca se agregan con `git add -f`. El procedimiento de preparación no envía datos a Neon, no crea servicios Render, no modifica la visibilidad de GitHub y no hace push sin autorización expresa.
+
+## Auditoría privada del observatorio
+
+Desde la raíz del repositorio, con las dependencias del backend instaladas:
+
+```powershell
+pwsh -NoProfile -File scripts/audit_observatory.ps1 -Baseline 37
+```
+
+`-Baseline` calcula la variación neta desde un total de referencia. `-Since` acepta un instante ISO 8601 con zona horaria para contar las participaciones guardadas desde ese corte. `-VerifyFilters` agrega consultas GET para las selecciones ofrecidas por Render. `-Python` permite elegir un intérprete con las dependencias cuando la ruta predeterminada de `.venv` no está disponible.
+
+El lanzador comprueba el destino directo registrado en `.local/neon` y puede usar `SAVRA_AUDIT_DSN` del proceso para una credencial con permisos SELECT. Si esa variable está ausente, usa la credencial protegida con DPAPI del equipo. La conexión exige TLS, autenticación con channel binding y una transacción de solo lectura con instantánea estable. Las consultas públicas son GET a las rutas autorizadas de Render. Los archivos de diagnóstico contienen conteos de uso administrativo y se escriben exclusivamente en `.local/observatory-audit`.

@@ -5,6 +5,7 @@ export type DataStatus = 'ready' | 'insufficient' | 'unavailable'
 export interface ChartDatum { label: string; category?: string; count: number; percentage: number; row_denominator?: number }
 export interface ChartData {
   key: string; title: string; status: DataStatus; denominator: number | null; missing: number | null;
+  reason?: 'protected' | 'incompatible' | 'no_responses' | 'unfiltered_only' | null;
   pooled: boolean; message: string | null; kind?: 'distribution' | 'matrix' | 'rates'; definition?: string;
   coverage_percentage?: number | null; filterable?: boolean; rows?: string[]; columns?: string[]; grouping_note?: string | null;
   required_variables?: string[]; variable_types?: Record<string, string>; indicator?: string;
@@ -40,7 +41,8 @@ export async function api<T>(path: string, init?: RequestInit): Promise<T> {
     const detail = typeof body?.detail === 'string' ? body.detail : response.status === 429 ? 'Espera un momento antes de volver a intentarlo.' : 'No pudimos completar la solicitud. Inténtalo de nuevo.'
     throw new ApiError(response.status, detail)
   }
-  return response.json()
+  try { return await response.json() }
+  catch { throw new ApiError(response.status, 'El servidor devolvió una respuesta que no se pudo leer.') }
 }
 export function post<T>(path: string, body: unknown) { return api<T>(path, { method: 'POST', body: JSON.stringify(body) }) }
 export const SIMULATION_NOTICE = 'DATOS SIMULADOS — DEMOSTRACIÓN TÉCNICA'

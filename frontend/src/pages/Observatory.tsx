@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useState } from 'react'
 import { Link, NavLink, Outlet, useLocation, useSearchParams } from 'react-router-dom'
 import { ArrowLeft, BookOpen, ChartNoAxesColumnIncreasing, Database, GraduationCap, Landmark, Layers3, Menu, RefreshCw, X } from 'lucide-react'
 import { Brand, EmptyState, ErrorState, Loading } from '@/components/shared'
@@ -109,26 +109,35 @@ export function AnalyticsModule({ module }: { module: string }) {
   const [params, setParams] = useSearchParams()
   const university = params.get('universidad') ?? ''
   const semester = params.get('semestre') ?? ''
-  const [data, setData] = useState<AnalyticsData>()
-  const [error, setError] = useState('')
+  const [snapshot, setSnapshot] = useState<{ scope: string; data: AnalyticsData }>()
+  const [failure, setFailure] = useState<{ request: string; title: string; message: string }>()
   const [revision, setRevision] = useState(0)
   const [completed, setCompleted] = useState('')
-  const request = JSON.stringify([content.endpoint, university, semester, revision])
+  const scope = JSON.stringify([content.endpoint, university, semester])
+  const request = JSON.stringify([scope, revision])
+  const data = snapshot?.scope === scope ? snapshot.data : undefined
+  const error = failure?.request === request ? failure : undefined
   const loading = completed !== request
-  const results = useRef<HTMLDivElement>(null)
   const [dimension, setDimension] = useState<'academic' | 'mobility'>('academic')
   const [mobilityComparison, setMobilityComparison] = useState('')
   useEffect(() => {
     const controller = new AbortController()
-    results.current?.querySelector<HTMLDialogElement>('dialog[open]')?.close()
-    setError('')
     const query = new URLSearchParams()
     if (university) query.set('university', university)
     if (semester) query.set('semester', semester)
-    api<AnalyticsData>(`${content.endpoint}?${query}`, { signal: controller.signal }).then(value => { if (!controller.signal.aborted) setData(value) })
-      .catch(e => { if (!controller.signal.aborted) setError(e.message) }).finally(() => { if (!controller.signal.aborted) setCompleted(request) })
+    api<AnalyticsData>(`${content.endpoint}?${query}`, { signal: controller.signal, cache: 'no-store' })
+      .then(value => { if (!controller.signal.aborted) setSnapshot({ scope, data: value }) })
+      .catch(error => {
+        if (!controller.signal.aborted) {
+          const title = error.status === 0 ? 'Error de conexión'
+            : error.status === 422 && (university || semester) ? 'Filtro no disponible' : 'Error de consulta'
+          setSnapshot(undefined)
+          setFailure({ request, title, message: error.message })
+        }
+      })
+      .finally(() => { if (!controller.signal.aborted) setCompleted(request) })
     return () => controller.abort()
-  }, [university, semester, content.endpoint, request])
+  }, [university, semester, content.endpoint, scope, request])
   useEffect(() => { const refresh = () => { if (document.visibilityState === 'visible') setRevision(x => x + 1) }; const timer = window.setInterval(refresh, 60000); document.addEventListener('visibilitychange', refresh); return () => { window.clearInterval(timer); document.removeEventListener('visibilitychange', refresh) } }, [])
   function filter(key: string, value: string) { const next = new URLSearchParams(params); value ? next.set(key, value) : next.delete(key); setParams(next) }
   function selectInstitution(value: string) {
@@ -143,10 +152,11 @@ export function AnalyticsModule({ module }: { module: string }) {
       <div><label htmlFor="filter-semester">Semestre</label><select id="filter-semester" value={semester} onChange={e => filter('semestre', e.target.value)} disabled={!data || loading}><option value="">Todos los semestres</option>{data?.filters.semester.map(s => <option key={s}>{s}</option>)}{semester && !data?.filters.semester.includes(semester) && <option value={semester}>Selección no disponible</option>}</select></div>
       <div className="filter-actions"><Button variant="ghost" size="sm" onClick={() => setRevision(x => x + 1)} disabled={loading} aria-label="Actualizar resultados"><RefreshCw size={15} /><span>Actualizar</span></Button>{(university || semester) && <Button variant="ghost" size="sm" onClick={() => setParams({})}>Limpiar filtros</Button>}</div>
     </section>
+    {loading && data && <p className="section-state" role="status">Actualizando resultados agregados…</p>}
     <div className="module-content" aria-busy={loading}>
-      {loading && <div className={data ? 'query-overlay' : ''}><Loading text="Consultando resultados agregados…" /></div>}
-      {!loading && error && <ErrorState message={error} retry={() => setRevision(x => x + 1)} />}
-      <div ref={results} className="module-results" data-updating={loading || undefined} inert={loading}>
+      {loading && !data && <Loading text="Consultando resultados agregados…" />}
+      {!loading && error && <ErrorState title={error.title} message={error.message} retry={() => setRevision(x => x + 1)} />}
+      <div className="module-results">
       {data && !error && <>
         <section className="metric-strip" aria-label={demo ? 'Resumen simulado de la selección' : 'Resumen de la selección'}>
           <div><p>{demo ? 'Registros sintéticos' : 'Respuestas elegibles'}</p><strong>{data.eligible_responses == null ? `1–${data.minimum_group_size - 1}` : formatCount(data.eligible_responses)}</strong>
@@ -159,7 +169,8 @@ export function AnalyticsModule({ module }: { module: string }) {
         {data.status === 'ready' && module === 'permanence' &&
           <section className="derived-grid" aria-label="Indicadores de permanencia">{data.indicators?.map(i => <article key={i.key}><h2>{i.title}</h2><strong>{i.status === 'ready' && i.percentage != null ? formatPercent(i.percentage) : '—'}</strong>
             {i.status === 'ready' && i.percentage != null && <div className="proportion-band" aria-hidden="true"><span style={{ width: `${i.percentage}%` }} /></div>}
-            <p>{i.status === 'ready' ? `${i.count} de ${i.denominator} ${demo ? 'registros válidos' : 'respuestas válidas'}` : 'Conteo no disponible'}</p></article>)}</section>}
+            <p>{i.status === 'ready' ? `${i.count} de ${i.denominator} ${demo ? 'registros válidos' : 'respuestas válidas'}` : i.status === 'insufficient' ? 'Datos protegidos' : 'Sin cobertura compatible'}</p>
+            {i.status !== 'ready' && <p>{i.message}</p>}</article>)}</section>}
         {module !== 'academic' && data.charts.length > 0 && <ChartCollection key={module} module={module} data={data} demo={demo} onInstitution={selectInstitution} />}
         {module === 'academic' && <>
           <div className="dimension-control" role="group" aria-label="Dimensión de exploración">

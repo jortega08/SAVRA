@@ -294,23 +294,27 @@ def specification(key, title, required, kind="distribution"):
             "definition": " / ".join(analytical_question(key).prompt for key in required),
             "category_catalog": {k: analytical_question(k).options for k in required},
             **({"introduced_in": INTEGRATED_VERSION} if not get_settings().data_mode == "demo" and any(k in REAL_MOBILITY_KEYS for k in required) else {}),
-            "status": "insufficient", "denominator": None, "missing": None, "coverage_percentage": None,
+            "status": "insufficient", "reason": "protected", "denominator": None, "missing": None, "coverage_percentage": None,
             "pooled": False, "message": PROTECTED, "data": [], "rows": [], "columns": [], "filterable": False}
+
+
+def unavailable(result, reason, message):
+    return {**result, "status": "unavailable", "reason": reason, "message": message}
 
 
 def distribution(ctx, key):
     options = analytical_question(key).options
     result = {**specification(key, TITLES[key], [key]), "ordered_categories": options}
     if not ctx.ids[key]:
-        return {**result, "status": "unavailable", "message": "Variable ausente o sin regla explícita de compatibilidad con el instrumento analítico."}
+        return unavailable(result, "incompatible", "El instrumento disponible carece de una variable compatible para este análisis.")
     if ctx.total == 0:
-        return {**result, "status": "unavailable", "message": "Aún no hay respuestas en esta selección."}
+        return unavailable(result, "no_responses", "Aún no hay respuestas en esta selección.")
     if ctx.total < ctx.minimum:
         return {**result, "message": f"Se requieren al menos {ctx.minimum} respuestas para divulgar frecuencias."}
     frequencies = ctx.frequencies(key)
     global_rows = frequencies.full.items()
     if not global_rows:
-        return {**result, "status": "unavailable", "message": "Todavía no se han recopilado valores compatibles para esta variable."}
+        return unavailable(result, "no_responses", "Todavía no se han recopilado valores compatibles para esta variable.")
     protected, pooled = safe_categories(global_rows, ctx.minimum)
     global_valid = sum(n for _, n in global_rows)
     if global_valid < ctx.minimum or small(ctx.global_total - global_valid, ctx.minimum):
@@ -329,18 +333,18 @@ def distribution(ctx, key):
 
     filterable = all(prepare(frequencies.partitions[cell], n)[2] for cell, n in ctx.partition_totals.items())
     if ctx.filtered and not filterable:
-        return {**result, "message": "Esta distribución está disponible sin filtros. Se omiten todas sus subdivisiones para impedir reconstruir categorías protegidas."}
+        return {**result, "reason": "unfiltered_only", "message": "Quita los filtros para ver la distribución general. Las subdivisiones quedan reservadas por privacidad."}
     grouped, valid, safe = prepare(frequencies.selected, ctx.total)
     if not safe:
         return result
     if not valid:
-        return {**result, "status": "unavailable", "message": "Esta selección carece de respuestas compatibles para la pregunta."}
+        return unavailable(result, "no_responses", "Esta selección carece de respuestas compatibles para la pregunta.")
     # Only catalogue entries absent from the full cohort, or publicly resolved
     # in every filter atom, can be assigned zero. Reserved labels stay unvalued.
     rows = [(label, grouped[label]) for label in options if label in visible or label not in frequencies.full]
     if grouped[POOL]:
         rows.append((POOL, grouped[POOL]))
-    return {**result, "status": "ready", "denominator": valid, "missing": ctx.total - valid,
+    return {**result, "status": "ready", "reason": None, "denominator": valid, "missing": ctx.total - valid,
             "coverage_percentage": round(valid * 100 / ctx.total, 1), "pooled": pooled, "filterable": filterable,
             "definition": analytical_question(key).prompt,
             "message": "La reserva reúne recuentos protegidos. Las opciones reservadas conservan su etiqueta y carecen de frecuencia individual." if pooled else None,
@@ -351,9 +355,9 @@ def comparison(ctx, x, y="dropout_thoughts"):
     title = f"{TITLES[x]} y {TITLES[y].lower()}"
     result = specification(f"{x}__{y}", title, [x, y], "matrix")
     if not ctx.ids[x] or not ctx.ids[y]:
-        return {**result, "status": "unavailable", "message": "Falta una variable compatible. Este análisis se habilitará cuando exista una definición y cobertura adecuada."}
+        return unavailable(result, "incompatible", "Falta una variable compatible para el cruce.")
     if ctx.total == 0:
-        return {**result, "status": "unavailable", "message": "Aún no hay respuestas en esta selección."}
+        return unavailable(result, "no_responses", "Aún no hay respuestas en esta selección.")
     if ctx.total < ctx.minimum:
         return {**result, "message": f"Se requieren al menos {ctx.minimum} respuestas para divulgar frecuencias."}
 
@@ -403,12 +407,12 @@ def protected_matrix(ctx, x, y, result, rules, *, require_filterable=False):
     if require_filterable and not filterable:
         return None
     if ctx.filtered and not filterable:
-        return {**result, "message": "El cruce está disponible sin filtros. Las subdivisiones podrían revelar celdas o complementos pequeños."}
+        return {**result, "reason": "unfiltered_only", "message": "Quita los filtros para ver el cruce general. Las subdivisiones quedan reservadas por privacidad."}
     cells, valid, valid_safe = safe(frequencies.selected, ctx.total, sum(fx.selected.values()), sum(fy.selected.values()))
     if not valid_safe:
         return result
     if valid == 0:
-        return {**result, "status": "unavailable", "message": "Esta selección no contiene respuestas compatibles para el cruce."}
+        return unavailable(result, "no_responses", "Esta selección no contiene respuestas compatibles para el cruce.")
     original = {key: list(rules[key]) if key in rules else analytical_question(key).options for key in (x, y)}
     rows = [value for value in original[x] if any(a == value for a, _, _ in cells)]
     columns = [value for value in original[y] if not (require_filterable or y in rules) or any(b == value for _, b, _ in cells)]
@@ -416,7 +420,7 @@ def protected_matrix(ctx, x, y, result, rules, *, require_filterable=False):
     totals = Counter()
     for a, _, n in cells:
         totals[a] += n
-    return {**result, "status": "ready", "denominator": valid, "missing": ctx.total - valid,
+    return {**result, "status": "ready", "reason": None, "denominator": valid, "missing": ctx.total - valid,
             "coverage_percentage": round(valid * 100 / ctx.total, 1), "filterable": filterable,
             "message": None, "rows": rows, "columns": columns,
             "grouping_note": "Las categorías se agrupan para proteger celdas del cruce. La definición muestra las equivalencias." if mappings else None,
@@ -430,7 +434,7 @@ def mobility_flow(ctx):
     x, y = "transport_mode", "commute_time"
     result = specification(f"{x}__{y}", "Medio de transporte y tiempo de desplazamiento", [x, y], "matrix")
     if not ctx.ids[x] or not ctx.ids[y]:
-        return {**result, "status": "unavailable", "message": "Falta una variable compatible de movilidad."}
+        return unavailable(result, "incompatible", "Falta una variable compatible de movilidad.")
     # The flow and its margins are a single release. Use the same plan even
     # unfiltered, and require every flow to be safe in every public filter atom.
     for rules in (({}, FLOW_GROUPS) if get_settings().data_mode == "demo" else ({},)):
@@ -500,17 +504,28 @@ def cohort_context(parent, shared=()):
 
 def integrated_mobility(ctx):
     charts = [distribution(ctx, key) for key in REAL_MOBILITY_KEYS]
+    published_status = {chart["key"]: chart for chart in charts}
+
+    def withheld(x, y, title):
+        result = specification(f"{x}__{y}", title, [x, y], "matrix")
+        # Reuse the already public marginal states, including the privacy
+        # guard that conceals whether a very small selection has any values.
+        for key in (x, y):
+            marginal = published_status.get(key)
+            if marginal and marginal["status"] == "unavailable":
+                return unavailable(result, marginal["reason"], marginal["message"])
+        return result
+
     specs = [("mobility_delay", "dropout_thoughts"), ("relocated_for_study", "main_difficulty")]
     comparisons = []
     for x, y in specs:
         scoped = cohort_context(ctx, (y,))
         chart = (comparison(scoped, x, y) if scoped is not None else
-                 specification(f"{x}__{y}", f"{TITLES[x]} y {TITLES[y].lower()}", [x, y], "matrix"))
+                 withheld(x, y, f"{TITLES[x]} y {TITLES[y].lower()}"))
         comparisons.append(chart)
     scoped = cohort_context(ctx)
     flow = (mobility_flow(scoped) if scoped is not None else
-            specification("transport_mode__commute_time", "Medio de transporte y tiempo de desplazamiento",
-                          ["transport_mode", "commute_time"], "matrix"))
+            withheld("transport_mode", "commute_time", "Medio de transporte y tiempo de desplazamiento"))
     # Denominators describe the v2 matrix. Coverage always refers to the entire
     # selected cohort, including historical records that did not have mobility.
     for chart in [flow, *comparisons]:
@@ -530,7 +545,7 @@ def dropout_composition(ctx, chart):
               "definition": "«Nunca» conserva la categoría original. «Ha pensado en abandonar alguna vez» suma Rara vez, Algunas veces, Frecuentemente y Muy frecuentemente.",
               "grouping_rules": {key: groups}}
     if chart["status"] != "ready":
-        return {**result, "status": chart["status"], "message": chart["message"]}
+        return {**result, "status": chart["status"], "reason": chart["reason"], "message": chart["message"]}
     published = {row["label"]: row["count"] for row in chart["data"]}
     if "Nunca" not in published and chart["pooled"]:
         globally_visible, _ = safe_categories(ctx.frequencies(key).full.items(), ctx.minimum)
@@ -538,7 +553,7 @@ def dropout_composition(ctx, chart):
             return result
     never = published.get("Nunca", 0)
     valid = chart["denominator"]
-    return {**result, "status": "ready", "denominator": valid, "missing": chart["missing"],
+    return {**result, "status": "ready", "reason": None, "denominator": valid, "missing": chart["missing"],
             "coverage_percentage": chart["coverage_percentage"], "filterable": chart["filterable"], "message": None,
             "data": [{"label": label, "count": count, "percentage": round(count * 100 / valid, 1)}
                      for label, count in zip(groups, (never, valid - never))]}
@@ -551,7 +566,7 @@ def institutional_rates(ctx, matrix):
               "definition": "Se suman «Frecuentemente» y «Muy frecuentemente» de la matriz publicable. Cada punto usa las respuestas válidas de su universidad.",
               "reference": None}
     if matrix["status"] != "ready":
-        return {**result, "status": matrix["status"], "message": matrix["message"]}
+        return {**result, "status": matrix["status"], "reason": matrix["reason"], "message": matrix["message"]}
     if "dropout_thoughts" in matrix["grouping_rules"]:
         return result
     numerators = Counter()
@@ -568,7 +583,7 @@ def institutional_rates(ctx, matrix):
 
     valid = matrix["denominator"]
     reference = row("Conjunto seleccionado", sum(numerators.values()), valid) if ctx.university is None and len(bases) > 1 else None
-    return {**result, "status": "ready", "denominator": valid, "missing": matrix["missing"],
+    return {**result, "status": "ready", "reason": None, "denominator": valid, "missing": matrix["missing"],
             "coverage_percentage": matrix["coverage_percentage"], "filterable": matrix["filterable"],
             "message": None, "reference": reference,
             "data": [row(label, numerators[label], base) for label, base in bases.items()]}
