@@ -1,78 +1,87 @@
-# Migración posterior de la base real a Neon
+# Migración controlada de PostgreSQL 17 a Neon PostgreSQL 18
 
-Procedimiento preparado, **no ejecutado**. No se ha conectado a Neon ni transferido datos reales. El origen sigue siendo el volumen PostgreSQL del único Compose `savra`.
+Procedimiento adaptado y ensayado el 6 de noviembre de 2026 para **origen 17.11 → destino Neon 18.6**. La restauración de datos reales está pendiente de autorización expresa. El formulario local permanece cerrado; PostgreSQL y su volumen no se detienen ni se sustituyen.
 
-## Preparación y corte de escrituras
+## Compatibilidad comprobada
 
-1. Confirme en Neon el proyecto `savra-real` de AWS us-east-1, la rama, rol, base y versión PostgreSQL elegidos. Utilice un destino vacío con PostgreSQL 17 para este procedimiento. El nombre de proyecto no implica que la base también se llame `savra-real`. No use una base o rama con datos demo.
-2. No cree ni despliegue Render contra ese destino todavía. Conserve el `.env` local y sus dos secretos en un gestor privado; se necesitarán en Render. No genere sustitutos al trasladar el histórico.
-3. Acuerde una ventana sin recolección. Detenga solo el frontend local con `docker compose stop frontend`, cierre cualquier túnel público y deje backend y db activos para las comprobaciones. No ejecute importadores ni comandos de escritura durante la ventana. Espere a que terminen los envíos en curso. El volumen real no se elimina ni se restaura sobre sí mismo.
-4. Compruebe los conteos del momento. El corte verificado durante la preparación fue 37 participaciones y 653 respuestas a preguntas. Si llegaron registros legítimos nuevos, documente el nuevo corte y actualice ambos parámetros. Nunca borre registros para igualar un conteo.
+La documentación de [pg_dump de PostgreSQL](https://www.postgresql.org/docs/18/app-pgdump.html) admite restaurar respaldos lógicos en versiones posteriores y recomienda citar todos los identificadores al cambiar de versión. Se usa **pg_dump 17.11**, del origen, y **pg_restore 18.6**, del destino. No se usa pg_upgrade ni copia del directorio de datos entre versiones. [Neon requiere una conexión directa](https://neon.com/docs/import/migrate-from-postgres).
 
-## Exportación privada consistente
+Ensayo reproducible:
 
-Desde la raíz en PowerShell, con Docker Desktop iniciado y Python disponible:
+    python scripts/test_pg17_to_pg18.py
+    python scripts/test_neon_migration_guards.py -q
 
-```powershell
-python scripts/database_manifest.py --local-compose --expect-responses 37 --expect-answers 653 --output .local/neon/source-before.json
-if ($LASTEXITCODE -ne 0) { throw 'Detenga la migración: integridad de origen no validada' }
+El primer script crea PostgreSQL 17.11 y 18.6 en una red Docker interna temporal, sin puertos publicados y con datos en tmpfs. PostgreSQL 18 monta /var/lib/postgresql, respetando el [cambio de PGDATA de la imagen oficial](https://hub.docker.com/_/postgres). No crea proyectos Compose ni volúmenes permanentes. Las fixtures no proceden de la base real ni se envían a Neon.
 
-docker compose exec -T db sh -ec 'umask 077; pg_dump --format=custom --no-owner --no-acl --file=/tmp/savra-neon.dump -U "$POSTGRES_USER" "$POSTGRES_DB"'
-if ($LASTEXITCODE -ne 0) { throw 'Falló el respaldo' }
-docker compose cp db:/tmp/savra-neon.dump .local/neon/savra-neon.dump
-if ($LASTEXITCODE -ne 0) { throw 'Falló la copia del respaldo' }
-docker compose exec -T db rm -f /tmp/savra-neon.dump
+Resultados:
 
-python scripts/database_manifest.py --local-compose --expect-responses 37 --expect-answers 653 --compare .local/neon/source-before.json --output .local/neon/source-after.json
-if ($LASTEXITCODE -ne 0) { throw 'El origen cambió durante la exportación; no restaure este corte' }
-(Get-FileHash -LiteralPath .local/neon/savra-neon.dump -Algorithm SHA256).Hash | Set-Content .local/neon/archive.sha256
-```
+- Dos participaciones de prueba, 45 respuestas, ambos cuestionarios y v2 activa conservados exactamente al restaurar en 18.6.
+- Igualdad de tablas, SHA-256 canónicos, relaciones, huellas de contenido, secuencias, Alembic y versión activa. Se incluyen Unicode, texto condicional, fechas y JSON.
+- Restauración con un rol propietario de la base **sin superusuario**, sin trasladar roles ni permisos del servidor local.
+- Alembic current, upgrade head y check correctos antes y después: sin operaciones pendientes ni cambios en los datos restaurados.
+- Suite completa sobre PostgreSQL 18.6: **177 aprobadas y una omitida** porque falta el Excel privado en el entorno aislado.
+- Cinco pruebas de guardas aprobadas: checksum incorrecto, cambio de destino, destino no vacío y conexión pooled detienen la operación; restauración válida transaccional sin flags destructivos.
 
-El archivo binario se genera dentro del contenedor y se copia con `docker compose cp`, evitando redirecciones binarias de PowerShell. `pg_dump` lee una instantánea consistente y no modifica los registros del origen. Incluye todas las tablas, Alembic, IDs, huellas HMAC, fechas, relaciones y secuencias; no exporta roles del servidor ni requiere superusuario en Neon. No se vuelve a importar el Excel ni se generan registros demo.
+El esquema real usa tablas, secuencias, claves foráneas, índices, JSON y timestamps con zona horaria. Se comprobó UTF-8 y ausencia de extensiones de usuario, rutinas de usuario, objetos grandes, tablas particionadas e índices inválidos. No fue necesario cambiar modelos, migraciones ni dependencias de la aplicación para PostgreSQL 18.
 
-Los respaldos contienen datos privados. `.local` está ignorado por Git y Docker, pero eso no cifra ni restringe permisos de Windows. Guarde una segunda copia cifrada fuera del repositorio, accesible solo al responsable. No suba el archivo ni sus manifiestos a GitHub ni a Render. Para comprobar una copia, vuelva a calcular SHA-256 y compárela con `archive.sha256`.
+## Destino y conexión segura
 
-## Restauración explícita y transaccional
+Destino confirmado por el titular en Neon Console/SQL Editor: proyecto **savra-real**, **AWS us-east-1**, rama **Producción / Primaria**, base **neondb**. La identidad y el endpoint esperado se guardan solo en target-identity.json, dentro del directorio privado de la ejecución. No se deduce el proyecto por el nombre de la base.
 
-Copie desde Neon su conexión **directa**, sin `-pooler` en el hostname, con TLS y rol autorizado. La guía oficial utiliza [pg_dump y pg_restore](https://neon.com/docs/import/migrate-from-postgres); [la documentación de pooling](https://neon.com/docs/connect/connection-pooling) exige conexión directa para esas herramientas.
+El directorio vigente se registra en .local/neon/active-run.json. Ingresar la conexión enmascarada y comprobar el destino:
 
-El script siguiente solo acepta un hostname `*.neon.tech`, un respaldo bajo `.local`, TLS y un destino sin tablas, vistas ni secuencias de aplicación en `public`. Requiere una opción explícita y no usa `--clean`, no borra objetos ni toca PostgreSQL local. Docker ejecuta un cliente efímero sin volumen ni proyecto Compose adicional. Errores y credenciales no se imprimen.
+    pwsh -NoProfile -File scripts/neon_secure.ps1 -Action SaveCredential
+    pwsh -NoProfile -File scripts/neon_secure.ps1 -Action Preflight
 
-```powershell
-$env:NEON_DATABASE_URL = Read-Host 'Conexión DIRECTA de Neon con TLS' -MaskInput
-try {
-    $expectedHash = (Get-Content .local/neon/archive.sha256).Trim()
-    if ((Get-FileHash .local/neon/savra-neon.dump -Algorithm SHA256).Hash -ne $expectedHash) {
-        throw 'El respaldo no coincide con su huella'
-    }
-    python scripts/restore_neon.py .local/neon/savra-neon.dump --confirm-empty-neon
-    if ($LASTEXITCODE -ne 0) { throw 'Restauración detenida; no continúe con Render' }
+neon.dpapi está cifrado para el usuario actual de Windows. La conexión se descifra solo en memoria de un proceso local y se elimina de su entorno al terminar. No se copia .env ni se imprimen URLs o contraseñas.
 
-    # El verificador necesita SQLAlchemy y psycopg instalados en este Python.
-    # Instalar previamente: python -m pip install -r backend/requirements.production.lock.txt
-    python scripts/database_manifest.py --database-env NEON_DATABASE_URL --expect-responses 37 --expect-answers 653 --compare .local/neon/source-after.json --output .local/neon/target.json
-    if ($LASTEXITCODE -ne 0) { throw 'El destino no coincide; no publique Render' }
-} finally {
-    Remove-Item Env:NEON_DATABASE_URL -ErrorAction SilentlyContinue
-}
-```
+Si se copió una cadena pooled, el helper puede convertir únicamente su hostname al endpoint directo equivalente **ya confirmado**. Cualquier otro hostname se rechaza. Nunca se conecta al pooler para migrar.
 
-Use PowerShell 7 para `Read-Host -MaskInput`. No escriba la URL literal en una orden, ni la pase como argumento de Python. El cliente recibe usuario, contraseña y parámetros mediante variables de proceso; no se registran en Git. El script restaura con `--single-transaction --exit-on-error --no-owner --no-acl` y captura su salida para evitar exponer valores de filas ante errores.
+El preflight es de solo lectura y exige versión exacta esperada, base y endpoint correctos, TLS y destino vacío. Deben ser cero tablas, secuencias, vistas, rutinas y tipos de aplicación en esquemas no internos, además de objetos grandes. El resultado se guarda en target-preflight.json.
 
-## Criterios de aceptación
+TLS se exige con sslmode=require o verify-full y channel_binding=require. Se comprueba en el cliente mediante [libpq PQsslInUse](https://www.postgresql.org/docs/18/libpq-status.html). El estado de pg_stat_ssl del backend se conserva solo como diagnóstico y no sustituye la comprobación del transporte del cliente a Neon.
 
-Los dos manifiestos deben coincidir completamente, incluidas las seis tablas de aplicación, `alembic_version`, conteos, SHA-256 de cada tabla ordenada y estados de secuencias. Se comprueban además:
+## Corte de escrituras y respaldo
 
-- Ninguna pregunta, opción, importación, participación ni respuesta huérfana; cuestionario coherente en todas las relaciones.
-- Unicidad y formato de huellas de participación; unicidad de respuesta por pregunta.
-- Recalcular `payload_hash` desde las respuestas completas y compararlo con el almacenado.
-- Preguntas obligatorias presentes y secuencias que no reutilizarán IDs.
-- Solo fuentes reales permitidas, sin cuestionarios demo. El origen debe ser exclusivamente la base real: no se puede inferir por contenido si alguien introdujo manualmente una fixture con apariencia de respuesta real.
+1. Detener solo el frontend: docker compose stop frontend. Cerrar túneles públicos si existen. Dejar backend y db activos; no ejecutar importadores ni operaciones administrativas de escritura.
+2. Leer nuevamente versión, conteos y cuestionarios con REPEATABLE READ y READ ONLY. El corte comprobado es **37 participaciones, 653 respuestas, forms-v1 y savra-integrada-v2, con v2 activa**. Si cambia, detener y conciliar; nunca borrar filas para igualarlo.
+3. Crear source-before.json con database_manifest.py y los conteos realmente observados; comprobar relaciones, huellas, secuencias y ausencia de cuestionarios demo.
+4. Crear el archivo dentro de db, con permisos restrictivos y nombre temporal único:
 
-Los manifiestos no muestran respuestas ni HMAC individuales en terminal. Se guardan privadamente y las validaciones usan `REPEATABLE READ` y `READ ONLY` del servidor. Las huellas HMAC se trasladan sin recalcularlas desde IDs originales, que no están almacenados. Preservar los secretos permite mantener la deduplicación posterior.
+    pg_dump --format=custom --quote-all-identifiers --no-owner --no-acl
+            --no-tablespaces --lock-wait-timeout=20s --file=ARCHIVO_PRIVADO
 
-## Apertura o recuperación
+Usuario y base se toman de variables del contenedor, sin imprimirlas. Copiar con docker compose cp a .local/neon/RUN/savra-neon.dump; no redirigir el binario mediante PowerShell. Eliminar solo el archivo temporal del contenedor después de comprobar la copia.
 
-Solo después de una coincidencia exacta, configure Render con el destino validado y los secretos conservados; despliegue y haga verificaciones de solo lectura. Mantenga cerrada la recolección local para evitar dos bases que reciban respuestas independientes. Conserve íntegros el volumen local y el respaldo.
+5. Guardar archive.sha256. Verificar cabecera, catálogo con pg_restore --list y lectura/descompresión completa con pg_restore 18.6 --file=/dev/null, **sin conectar a un servidor ni restaurar datos**. Deben estar las siete tablas con datos y las seis secuencias.
+6. Crear source-after.json y exigir coincidencia exacta con source-before.json para detectar cualquier escritura concurrente.
+7. Restringir el directorio al usuario actual y SYSTEM. Crear una segunda copia DPAPI bajo %LOCALAPPDATA%/SAVRA/MigrationBackups, fuera del repositorio. Verificar descifrado en memoria y el mismo SHA-256. DPAPI depende del usuario/equipo Windows; conservar el perfil y sus claves según la política del responsable.
 
-Ante cualquier diferencia, no abra Render ni sobrescriba el origen. Conserve evidencia privada y revise el corte. Si decide cancelar antes de abrir Neon a participantes, recupere el servicio local con `docker compose start frontend`; esto conserva todos sus registros. Si Neon ya recibió respuestas, primero concilie ambos históricos: no vuelva sin más al respaldo anterior.
+El respaldo preparado ocupa **38.345 bytes**. Hash, lectura completa y copia cifrada constan privadamente en backup-verification.json, archive.sha256 y encrypted-backup.json. Procede exclusivamente de PostgreSQL real; no incluye datos demo ni reimporta Excel.
+
+## Punto de confirmación obligatorio
+
+**DETENERSE AQUÍ:** presentar destino, versiones, conteos, versión activa, ensayo y SHA-256 del respaldo. Solicitar autorización expresa para restaurar esa copia concreta. Guardar una credencial o confirmar un preflight no autoriza la restauración.
+
+Solo después de recibir autorización:
+
+    pwsh -NoProfile -File scripts/neon_secure.ps1 -Action Restore -ConfirmRestore
+
+El helper exige frontend detenido, ensayo 17→18 satisfactorio y origen idéntico al respaldo. restore_neon.py vuelve a validar SHA-256, versión, endpoint, rol, base y vacío justo antes de operar. Emplea el cliente 18.6 con transacción única:
+
+    pg_restore --single-transaction --exit-on-error --no-owner --no-acl
+               --no-comments --no-security-labels --no-tablespaces
+
+No utiliza --clean, --create ni desactivación de triggers; no sobrescribe objetos. Un error cancela la transacción y exige revisión antes de reintentar. La salida potencialmente sensible no se imprime. Render y el formulario permanecen sin publicar; no crear objetos manuales en Neon durante la ventana.
+
+## Verificación posterior a la restauración autorizada
+
+    pwsh -NoProfile -File scripts/neon_secure.ps1 -Action Verify
+
+Exigir igualdad completa con source-after.json: siete tablas, conteos, SHA-256 canónicos, fuentes de respuestas y estados de secuencias. Incluye las definiciones y la bandera activa de los dos cuestionarios. Recalcula hashes de contenido y comprueba relaciones, unicidad, preguntas obligatorias y secuencias que no reutilicen IDs.
+
+Comprobar también forms-v1 y savra-integrada-v2, solo v2 activa y manifiesto local intacto. No ejecutar bootstrap, importaciones ni respuestas de prueba contra Neon.
+
+Solo después de esa igualdad se podrá confirmar una copia íntegra y continuar con Render. Los secretos de sesión y deduplicación originales se conservan por canal privado. Un rollback de Render no revierte PostgreSQL.
+
+Ante diferencias, no abrir el formulario, no volver a restaurar sobre un destino con objetos y no modificar el origen. Si se cancela antes de que Neon reciba respuestas, docker compose start frontend recupera el servicio local sin alterar el volumen. Si Neon ya recibió respuestas legítimas, conciliar ambos históricos antes de volver al origen.
